@@ -1,0 +1,52 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.6.2.201302030002"
+    reportsDir = file("$buildDir/JacocoReportDir")
+}
+
+eclipse {
+  project {
+    name = 'kafkaProducer'
+  }
+  classpath {
+    downloadSources=true
+  }
+}
+
+
+eclipse.classpath.defaultOutputDir = file( 'build/classes' )
+
+group = 'com.neverwinterdp'
+sourceCompatibility = 1.7
+version = '1.0-SNAPSHOT'
+configurations.compile.transitive = true
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+
+
+dependencies {
+  compile 'org.apache.curator:curator-framework:2.6.0'
+  compile 'org.apache.curator:curator-recipes:2.6.0'
+  compile 'org.apache.curator:curator-test:2.6.0'
+  compile group: 'org.apache.kafka', name: 'kafka_2.10', version:'0.8.1.1'
+  compile group:  'com.fasterxml', name : 'jackson-module-json-org', version: '0.9.1'
+  testCompile group: 'junit', name: 'junit', version: '4.11'
+  compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.5'
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.5'
+}
+
+test {
+  forkEvery = 1
+  ignoreFailures = true
+  testLogging.showStandardStreams = true
+  testLogging {
+    events "passed", "skipped", "failed"
+  }
+}
