@@ -1,6 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'jacoco'
+apply plugin:'application'
+
+mainClassName = "com.neverwinterdp.scribengin.datagenerator.DataGenerator"
 
 jacoco {
     toolVersion = "0.6.2.201302030002"
@@ -16,13 +19,6 @@ eclipse {
   }
 }
 
-
-eclipse.classpath.defaultOutputDir = file( 'build/classes' )
-
-group = 'com.neverwinterdp'
-sourceCompatibility = 1.7
-version = '1.0-SNAPSHOT'
-configurations.compile.transitive = true
 
 repositories {
   mavenLocal()
