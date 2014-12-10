@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer;
+package com.neverwinterdp.kafka.producer;
 
 import java.util.Properties;
 import java.util.Random;
@@ -10,12 +10,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
-import com.neverwinterdp.kafkaproducer.util.PropertyUtils;
-// TODO finer granurality, 2 times a second
-// TODO Retry mechanism
-// TODO auto partition reassignment
-// TODO fixed counter e.g ability to write 100000 messages to a topic.
-// TODO ability to reconnect,
+import com.neverwinterdp.kafka.producer.util.PropertyUtils;
+import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
+
 /**
  * The main class
  * */
@@ -23,15 +20,16 @@ public class KafkaProducer {
 
   private static final Logger logger = Logger.getLogger(KafkaProducer.class);
   private static final Random RANDOM = new Random();
+  private ZookeeperHelper helper;
   private int writers;
   private long runPeriod;
   private long delay;
   private String zkURL;
   private String topic;
   private int partitions;
+  private int replicationFactor;
 
-
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
     KafkaProducer dataGenerator = new KafkaProducer();
     dataGenerator.init();
@@ -42,7 +40,7 @@ public class KafkaProducer {
     }
   }
 
-  private void init() {
+  private void init() throws Exception {
     logger.info("init. ");
     Properties props = PropertyUtils.getPropertyFile("kafkaproducer.properties");
     writers = Integer.parseInt(props.getProperty("writers"));
@@ -51,7 +49,13 @@ public class KafkaProducer {
     partitions = Integer.parseInt(props.getProperty("partitions"));
     runPeriod = Integer.parseInt(props.getProperty("run-duration"));
     zkURL = props.getProperty("zookeeper");
+    replicationFactor = Integer.parseInt(props.getProperty("replication-factor"));
+    helper = new ZookeeperHelper(zkURL);
     //TODO ensure topics, partitions exists if not create them
+    for (int i = 0; i <= partitions; i++) {
+      if (helper.getBrokersForTopicAndPartition(topic, i).size() == 0)
+        helper.createTopic(topic, i, replicationFactor);
+    }
   }
 
   //TODO give the writer a specific partition

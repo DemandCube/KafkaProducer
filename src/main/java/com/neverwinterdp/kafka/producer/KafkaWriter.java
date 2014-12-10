@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer;
+package com.neverwinterdp.kafka.producer;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -15,8 +15,8 @@ import kafka.producer.ProducerConfig;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.CharMatcher;
-import com.neverwinterdp.kafkaproducer.util.HostPort;
-import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
+import com.neverwinterdp.kafka.producer.util.HostPort;
+import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
 public class KafkaWriter implements Runnable, Closeable {
 
@@ -44,7 +44,7 @@ public class KafkaWriter implements Runnable, Closeable {
     props.put("metadata.broker.list", getBrokerList());
     props.put("serializer.class", "kafka.serializer.StringEncoder");
     props.put("partitioner.class", "com.neverwinterdp.kafkaproducer.SimplePartitioner");
-    props.put("request.required.acks", "0");
+    props.put("request.required.acks", "1");
 
     ProducerConfig config = new ProducerConfig(props);
     producer = new Producer<String, String>(config);
@@ -57,11 +57,6 @@ public class KafkaWriter implements Runnable, Closeable {
     String brokerString;
     try (ZookeeperHelper helper = new ZookeeperHelper(zkURL);) {
       brokers = helper.getBrokersForTopicAndPartition(topic, partition);
-      if (brokers.size() == 0) {// topic/partition doesn't exists
-        //TODO this should be in main class
-        helper.createTopic(topic, 2);
-        brokers = helper.getBrokersForTopicAndPartition(topic, partition);
-      }
     }
     brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
     logger.info("SERVERS: " + brokerString);
@@ -77,13 +72,13 @@ public class KafkaWriter implements Runnable, Closeable {
 
     logger.info(Thread.currentThread().getName() + message);
     try {
-      writeToKafka(message);
+      write(message);
     } catch (Exception e) {
       logger.error(e.getMessage());
     }
   }
 
-  private void writeToKafka(String message) throws Exception {
+  public void write(String message) throws Exception {
     logger.info("writeToKafka.");
     try {
       KeyedMessage<String, String> data =
@@ -92,6 +87,7 @@ public class KafkaWriter implements Runnable, Closeable {
       producer.send(data);
     } catch (Exception e) {
       createProducer();
+      //TODO then attempt to re-write message
     }
   }
 

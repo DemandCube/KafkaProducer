@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.util;
+package com.neverwinterdp.kafka.producer.util;
 
 public class HostPort {
   private String host;

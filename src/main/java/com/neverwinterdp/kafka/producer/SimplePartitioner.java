@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer;
+package com.neverwinterdp.kafka.producer;
 
 import kafka.producer.Partitioner;
 import kafka.utils.VerifiableProperties;

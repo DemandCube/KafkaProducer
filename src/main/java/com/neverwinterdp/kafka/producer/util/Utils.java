@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.util;
+package com.neverwinterdp.kafka.producer.util;
 
 import java.io.IOException;
 import java.util.Map;

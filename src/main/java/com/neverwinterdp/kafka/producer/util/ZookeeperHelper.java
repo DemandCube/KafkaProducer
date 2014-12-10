@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.util;
+package com.neverwinterdp.kafka.producer.util;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -293,9 +293,8 @@ public class ZookeeperHelper implements Closeable {
     client.close();
   }
 
-  public void createTopic(String topic, int partitions) {
+  public void createTopic(String topic, int partitions, int replicationFactor) {
     ZkClient client = new ZkClient(zkConnectString, 10000, 10000, ZKStringSerializer$.MODULE$);
-    int replicationFactor = 1;
     Properties topicConfig = new Properties();
     AdminUtils.createTopic(client, topic, partitions, replicationFactor, topicConfig);
     client.close();
