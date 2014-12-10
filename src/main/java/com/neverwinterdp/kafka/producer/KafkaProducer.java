@@ -52,13 +52,11 @@ public class KafkaProducer {
     replicationFactor = Integer.parseInt(props.getProperty("replication-factor"));
     helper = new ZookeeperHelper(zkURL);
     //TODO ensure topics, partitions exists if not create them
-    for (int i = 0; i <= partitions; i++) {
-      if (helper.getBrokersForTopicAndPartition(topic, i).size() == 0)
-        helper.createTopic(topic, i, replicationFactor);
-    }
+    if (helper.getBrokersForTopicAndPartition(topic, 0).size() == 0)
+      helper.createTopic(topic, 2, replicationFactor);
   }
 
-  //TODO give the writer a specific partition
+  //TODO assign partitions to writers in round robin
   private void generate() throws Exception {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
     KafkaWriter writer;

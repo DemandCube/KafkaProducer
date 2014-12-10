@@ -43,7 +43,7 @@ public class KafkaWriter implements Runnable, Closeable {
     Properties props = new Properties();
     props.put("metadata.broker.list", getBrokerList());
     props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", "com.neverwinterdp.kafkaproducer.SimplePartitioner");
+    props.put("partitioner.class", "com.neverwinterdp.kafka.producer.SimplePartitioner");
     props.put("request.required.acks", "1");
 
     ProducerConfig config = new ProducerConfig(props);
