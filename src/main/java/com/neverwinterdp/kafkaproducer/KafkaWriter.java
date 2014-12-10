@@ -43,7 +43,7 @@ public class KafkaWriter implements Runnable, Closeable {
     Properties props = new Properties();
     props.put("metadata.broker.list", getBrokerList());
     props.put("serializer.class", "kafka.serializer.StringEncoder");
-    // props.put("partitioner.class", "com.neverwinterdp.kafkaproducer.SimplePartitioner");
+    props.put("partitioner.class", "com.neverwinterdp.kafkaproducer.SimplePartitioner");
     props.put("request.required.acks", "0");
 
     ProducerConfig config = new ProducerConfig(props);
@@ -58,6 +58,7 @@ public class KafkaWriter implements Runnable, Closeable {
     try (ZookeeperHelper helper = new ZookeeperHelper(zkURL);) {
       brokers = helper.getBrokersForTopicAndPartition(topic, partition);
       if (brokers.size() == 0) {// topic/partition doesn't exists
+        //TODO this should be in main class
         helper.createTopic(topic, 2);
         brokers = helper.getBrokersForTopicAndPartition(topic, partition);
       }

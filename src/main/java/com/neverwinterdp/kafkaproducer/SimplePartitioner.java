@@ -1,7 +1,7 @@
 package com.neverwinterdp.kafkaproducer;
 
 import kafka.producer.Partitioner;
-
+import kafka.utils.VerifiableProperties;
 
 /**
  * A partitioner that writes to the specified partition.
@@ -12,8 +12,11 @@ import kafka.producer.Partitioner;
  * */
 public class SimplePartitioner implements Partitioner {
 
+  public SimplePartitioner(VerifiableProperties props) {
+  }
+  
   @Override
   public int partition(Object arg0, int arg1) {
-      return Integer.parseInt((String) arg0);
+    return Integer.parseInt((String) arg0);
   }
 }
