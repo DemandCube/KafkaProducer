@@ -1,4 +1,4 @@
-package com.neverwinterdp.scribengin.datagenerator.util;
+package com.neverwinterdp.kafkaproducer.util;
 
 import java.io.IOException;
 import java.util.Map;

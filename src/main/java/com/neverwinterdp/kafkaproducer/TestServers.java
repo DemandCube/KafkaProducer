@@ -1,4 +1,4 @@
-package com.neverwinterdp.scribengin.datagenerator;
+package com.neverwinterdp.kafkaproducer;
 
 import java.util.Properties;
 
@@ -9,7 +9,7 @@ import kafka.utils.Time;
 import org.apache.curator.test.TestingServer;
 
 
-public class Servers {
+public class TestServers {
   TestingServer zookeeper;
   KafkaServer server;
 

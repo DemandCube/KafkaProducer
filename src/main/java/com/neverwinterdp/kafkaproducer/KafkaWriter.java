@@ -1,4 +1,4 @@
-package com.neverwinterdp.scribengin.datagenerator;
+package com.neverwinterdp.kafkaproducer;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -15,14 +15,13 @@ import kafka.producer.ProducerConfig;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.CharMatcher;
-import com.neverwinterdp.scribengin.datagenerator.util.HostPort;
-import com.neverwinterdp.scribengin.datagenerator.util.ZookeeperHelper;
+import com.neverwinterdp.kafkaproducer.util.HostPort;
+import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-// TODO TOPIC:HAHAHA, PARTITON:1, WriterID:0, TIME:06:15:20, SEQUENCE:61
-public class KafkaProducer implements Runnable, Closeable {
+public class KafkaWriter implements Runnable, Closeable {
 
-  private static final Logger logger = Logger.getLogger(KafkaProducer.class);
-  private static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+  private static final Logger logger = Logger.getLogger(KafkaWriter.class);
+  private static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss:SSSS");
   private static final CharMatcher CHAR_MATCHER = CharMatcher.anyOf("[]"); // remove control characters
   private Producer<String, String> producer;
   private AtomicInteger sequenceID;
@@ -31,7 +30,7 @@ public class KafkaProducer implements Runnable, Closeable {
   private int writerId;
   private String zkURL;
 
-  public KafkaProducer(String zkURL, String topic, int partition, int id) throws Exception {
+  public KafkaWriter(String zkURL, String topic, int partition, int id) throws Exception {
     this.zkURL = zkURL;
     this.topic = topic;
     this.partition = partition;
@@ -44,39 +43,38 @@ public class KafkaProducer implements Runnable, Closeable {
     Properties props = new Properties();
     props.put("metadata.broker.list", getBrokerList());
     props.put("serializer.class", "kafka.serializer.StringEncoder");
-    //  props.put("partitioner.class", "com.neverwinterdp.scribengin.fixture.SimplePartitioner");
+    // props.put("partitioner.class", "com.neverwinterdp.kafkaproducer.SimplePartitioner");
     props.put("request.required.acks", "0");
 
     ProducerConfig config = new ProducerConfig(props);
     producer = new Producer<String, String>(config);
   }
 
+
   private String getBrokerList() throws Exception {
     logger.info("getBrokerList. ");
     Collection<HostPort> brokers;
-    String cluster;
+    String brokerString;
     try (ZookeeperHelper helper = new ZookeeperHelper(zkURL);) {
       brokers = helper.getBrokersForTopicAndPartition(topic, partition);
       if (brokers.size() == 0) {// topic/partition doesn't exists
-      helper.createTopic(topic, 2);
-      brokers = helper.getBrokersForTopicAndPartition(topic, partition);
+        helper.createTopic(topic, 2);
+        brokers = helper.getBrokersForTopicAndPartition(topic, partition);
       }
     }
-    cluster = CHAR_MATCHER.removeFrom(brokers.toString());
-    logger.info("SERVERS: " + cluster);
-    return cluster;
+    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
+    logger.info("SERVERS: " + brokerString);
+    return brokerString;
   }
 
   @Override
   public void run() {
     Date now = new Date();
-    String message = " TOPIC: " + topic + " PARTITON: "
-        + partition + " WriterID:" + writerId
-        + " TIME:" + dateFormat.format(now) + " SEQUENCE:" + sequenceID.incrementAndGet();
+    String message = " TOPIC: " + topic + ", PARTITION: "
+        + partition + ", WriterID:" + writerId
+        + ", TIME:" + dateFormat.format(now) + ", SEQUENCE:" + sequenceID.incrementAndGet();
 
-    System.out.println(Thread.currentThread().getName() + " TOPIC: " + topic + " PARTITON: "
-        + partition + " WriterID:" + writerId
-        + " TIME:" + dateFormat.format(now) + " SEQUENCE:" + sequenceID.incrementAndGet());
+    logger.info(Thread.currentThread().getName() + message);
     try {
       writeToKafka(message);
     } catch (Exception e) {
@@ -86,16 +84,13 @@ public class KafkaProducer implements Runnable, Closeable {
 
   private void writeToKafka(String message) throws Exception {
     logger.info("writeToKafka.");
+    try {
+      KeyedMessage<String, String> data =
+          new KeyedMessage<String, String>(topic, Integer.toString(partition), message);
 
-    for (int nEvents = 0; nEvents < 100; nEvents++) {
-      String msg = "TOPIC: " + topic + " PARTITON: " + partition + " WriterID:" + writerId
-          + " TIME:" + dateFormat.format(new Date());
-      KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, msg);
-      try {
-        producer.send(data);
-      } catch (Exception e) {
-        createProducer();
-      }
+      producer.send(data);
+    } catch (Exception e) {
+      createProducer();
     }
   }
 

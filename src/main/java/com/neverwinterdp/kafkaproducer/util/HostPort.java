@@ -1,4 +1,4 @@
-package com.neverwinterdp.scribengin.datagenerator.util;
+package com.neverwinterdp.kafkaproducer.util;
 
 public class HostPort {
   private String host;

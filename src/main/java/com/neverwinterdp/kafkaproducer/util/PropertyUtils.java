@@ -1,4 +1,4 @@
-package com.neverwinterdp.scribengin.datagenerator.util;
+package com.neverwinterdp.kafkaproducer.util;
 
 
 import java.io.FileInputStream;
@@ -10,7 +10,6 @@ import java.net.URL;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
-
 
 // Do we have a similar one in neverwinter-commons?
 public class PropertyUtils {
