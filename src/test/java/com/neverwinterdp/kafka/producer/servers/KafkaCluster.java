@@ -27,12 +27,13 @@ public class KafkaCluster {
     ZookeeperServerLauncher zookeeper = new ZookeeperServerLauncher(dataDir+"/zk", zkPort);
     zookeeper.start();
     zookeeperServers.add(zookeeper);
-    
+    Thread.sleep(1000);
     KafkaServerLauncher kafka;
     for (int i = 0; i < kafkaBrokers; i++) {
-      kafka = new KafkaServerLauncher(i, dataDir+"/"+i, kafkaPort++);
+      kafka = new KafkaServerLauncher(i, dataDir+"/kafka"+i, kafkaPort++);
       kafka.start();
       kafkaServers.add(kafka);
+      Thread.sleep(1000);
     }    
   }
 
