@@ -12,11 +12,15 @@ public class TuanSimplePartitioner implements Partitioner {
 
   public int partition(Object key, int a_numPartitions) {
     String strKey = (String) key ;
+    String subKey = strKey;
     int partition = 0;
     int offset = strKey.lastIndexOf('.');
     if (offset > 0) {
-      partition = Integer.parseInt(strKey.substring(offset + 1)) % a_numPartitions;
+      subKey = strKey.substring(offset + 1);
     }
+    partition = Math.abs(subKey.hashCode()) % a_numPartitions;
+    //Or simple:
+    //partition = Math.abs(strKey.hashCode()) % a_numPartitions;
     return partition;
   }
 }
