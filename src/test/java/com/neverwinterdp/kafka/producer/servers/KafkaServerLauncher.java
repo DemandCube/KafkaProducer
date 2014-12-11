@@ -27,8 +27,8 @@ public class KafkaServerLauncher implements Server {
 
   public KafkaServerLauncher(int id, String dataDir, int port) {
     Map<String, String> props = new HashMap<String, String>();
-    props.put("port", Integer.toString(port));
     props.put("broker.id", Integer.toString(id));
+    props.put("port", Integer.toString(port));
     props.put("log.dirs", dataDir);
     init(props);
   }
