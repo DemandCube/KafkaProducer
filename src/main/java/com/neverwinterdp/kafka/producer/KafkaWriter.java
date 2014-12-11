@@ -18,6 +18,7 @@ import com.google.common.base.CharMatcher;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
+
 public class KafkaWriter implements Runnable, Closeable {
 
   private static final Logger logger = Logger.getLogger(KafkaWriter.class);
@@ -25,6 +26,7 @@ public class KafkaWriter implements Runnable, Closeable {
   private static final CharMatcher CHAR_MATCHER = CharMatcher.anyOf("[]"); // remove control characters
   private Producer<String, String> producer;
   private AtomicInteger sequenceID;
+  String message;
   private String topic;
   private int partition;
   private int writerId;
@@ -40,6 +42,11 @@ public class KafkaWriter implements Runnable, Closeable {
   }
 
   private void createProducer() throws Exception {
+    try (ZookeeperHelper helper = new ZookeeperHelper(zkURL)) {
+      if (helper.getBrokersForTopicAndPartition(topic, 0).size() == 0)
+        helper.createTopic(topic, 2, 2);
+    }
+
     Properties props = new Properties();
     props.put("metadata.broker.list", getBrokerList());
     props.put("serializer.class", "kafka.serializer.StringEncoder");
@@ -66,7 +73,7 @@ public class KafkaWriter implements Runnable, Closeable {
   @Override
   public void run() {
     Date now = new Date();
-    String message = " TOPIC: " + topic + ", PARTITION: "
+    message = "TOPIC: " + topic + ", PARTITION: "
         + partition + ", WriterID:" + writerId
         + ", TIME:" + dateFormat.format(now) + ", SEQUENCE:" + sequenceID.incrementAndGet();
 
@@ -87,12 +94,16 @@ public class KafkaWriter implements Runnable, Closeable {
       producer.send(data);
     } catch (Exception e) {
       createProducer();
-      //TODO then attempt to re-write message
+      //TODO then retry to re-write message
     }
   }
 
   @Override
   public void close() throws IOException {
     producer.close();
+  }
+
+  public String getMessage() {
+    return message;
   }
 }

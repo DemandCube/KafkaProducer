@@ -8,6 +8,6 @@ public interface Server {
 
   void start() throws Exception;
   
-  void shutdown()throws Exception;
+  void shutdown();
 
 }

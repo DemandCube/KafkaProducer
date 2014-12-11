@@ -157,7 +157,7 @@ public class ZookeeperServerLauncher implements Server {
   }
 
   @Override
-  public void shutdown() throws Exception {
+  public void shutdown() {
     if (launcher != null) {
       launcher.shutdown();
       launcher = null;

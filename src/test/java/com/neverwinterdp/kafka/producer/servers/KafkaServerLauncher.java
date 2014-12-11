@@ -67,6 +67,7 @@ public class KafkaServerLauncher implements Server {
     Thread.sleep(1000);
   }
 
+  @Override
   public void shutdown() {
     if (server == null)
       return;

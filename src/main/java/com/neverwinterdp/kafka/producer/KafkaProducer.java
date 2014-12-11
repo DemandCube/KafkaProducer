@@ -11,7 +11,6 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
 import com.neverwinterdp.kafka.producer.util.PropertyUtils;
-import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
 /**
  * The main class
@@ -20,14 +19,12 @@ public class KafkaProducer {
 
   private static final Logger logger = Logger.getLogger(KafkaProducer.class);
   private static final Random RANDOM = new Random();
-  private ZookeeperHelper helper;
   private int writers;
   private long runPeriod;
   private long delay;
   private String zkURL;
   private String topic;
   private int partitions;
-  private int replicationFactor;
 
   public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
@@ -49,11 +46,7 @@ public class KafkaProducer {
     partitions = Integer.parseInt(props.getProperty("partitions"));
     runPeriod = Integer.parseInt(props.getProperty("run-duration"));
     zkURL = props.getProperty("zookeeper");
-    replicationFactor = Integer.parseInt(props.getProperty("replication-factor"));
-    helper = new ZookeeperHelper(zkURL);
     //TODO ensure topics, partitions exists if not create them
-    if (helper.getBrokersForTopicAndPartition(topic, 0).size() == 0)
-      helper.createTopic(topic, 2, replicationFactor);
   }
 
   //TODO assign partitions to writers in round robin

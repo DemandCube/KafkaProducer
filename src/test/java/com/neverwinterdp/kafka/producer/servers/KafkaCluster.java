@@ -3,7 +3,7 @@ package com.neverwinterdp.kafka.producer.servers;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Servers {
+public class KafkaCluster {
 
   private Set<Server> kafkaServers;
   private Set<Server> zookeeperServers;
@@ -12,7 +12,7 @@ public class Servers {
   private int kafkaBrokers;
   private String dataDir;
 
-  public Servers(String dataDir, int zkPort, int kafkaPort, int kafkaBrokers) {
+  public KafkaCluster(String dataDir, int zkPort, int kafkaPort, int kafkaBrokers) {
     super();
     this.dataDir = dataDir;
     this.zkPort = zkPort;
@@ -24,7 +24,7 @@ public class Servers {
 
 
   public void start() throws Exception {
-    ZookeeperServerLauncher zookeeper = new ZookeeperServerLauncher(dataDir, zkPort);
+    ZookeeperServerLauncher zookeeper = new ZookeeperServerLauncher(dataDir+"/zk", zkPort);
     zookeeper.start();
     zookeeperServers.add(zookeeper);
     

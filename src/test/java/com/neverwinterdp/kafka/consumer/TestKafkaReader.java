@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.producer;
+package com.neverwinterdp.kafka.consumer;
 
 import static org.junit.Assert.*;
 

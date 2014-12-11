@@ -5,11 +5,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.log4j.BasicConfigurator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,25 +18,27 @@ import com.neverwinterdp.kafka.consumer.KafkaReader;
 
 public class TestKafkaWriter {
 
-  private LinkedBlockingQueue<String> buffer;
+  private LinkedList<String> buffer;
   private KafkaWriter writer;
   private KafkaReader reader;
-  private String zkURL;
+  private String zkURL = "127.0.0.1:2181";
   private int id = 1;
   private int partition = 1;
-  private String topic = "test";
+  private String topic;
 
   @Before
   public void setUp() throws Exception {
-    buffer = new LinkedBlockingQueue<>();
+    BasicConfigurator.configure();
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
+    buffer = new LinkedList<>();
     writer = new KafkaWriter(zkURL, topic, partition, id);
-    reader = new KafkaReader(zkURL, topic, partition, id);
+    reader = new KafkaReader(zkURL, topic, partition);
   }
 
   @Test
   public void testWriteToNonExistentTopic() throws Exception {
-    topic = UUID.randomUUID().toString();
-    partition = new Random().nextInt(10);
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
+    //  partition = new Random().nextInt(10);
     writer = new KafkaWriter(zkURL, topic, partition, id);
     try {
       writer.run();
@@ -46,7 +48,7 @@ public class TestKafkaWriter {
     }
   }
 
-  
+
   @Test
   public void testCountMessages() {
     List<String> messages = new ArrayList<>();
@@ -67,11 +69,12 @@ public class TestKafkaWriter {
     int count = 20;
     for (int i = 0; i < count; i++) {
       writer.run();
-      buffer.put(topic);
+      buffer.add(writer.getMessage());
     }
     assertEquals(count, buffer.size());
+    System.out.println("hahaha " + buffer);
     for (int i = 0; i < count; i++) {
-      assertEquals(reader.read(), buffer.remove());
+      assertEquals(reader.read(), buffer.pollLast());
     }
   }
 

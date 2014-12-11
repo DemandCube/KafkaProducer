@@ -13,6 +13,7 @@ import java.util.Set;
 
 import kafka.admin.AdminUtils;
 import kafka.utils.ZKStringSerializer$;
+import kafka.utils.ZkUtils;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.curator.RetryPolicy;
@@ -241,7 +242,7 @@ public class ZookeeperHelper implements Closeable {
     writeData(path, data);
   }
 
-  public void removeKafkaData() {
+  public void deleteKafkaData() {
     logger.info("removeKafkaData. ");
     try {
       zkClient.delete().deletingChildrenIfNeeded().forPath("/brokers");
@@ -297,6 +298,17 @@ public class ZookeeperHelper implements Closeable {
     ZkClient client = new ZkClient(zkConnectString, 10000, 10000, ZKStringSerializer$.MODULE$);
     Properties topicConfig = new Properties();
     AdminUtils.createTopic(client, topic, partitions, replicationFactor, topicConfig);
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+    //Hack
+    }
+    client.close();
+  }
+
+  public void deleteTopic(String topic) {
+    ZkClient client = new ZkClient(zkConnectString, 10000);
+    client.deleteRecursive(ZkUtils.getTopicPath(topic));
     client.close();
   }
 }
