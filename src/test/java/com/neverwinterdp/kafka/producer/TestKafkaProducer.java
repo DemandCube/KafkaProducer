@@ -16,9 +16,11 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafka.consumer.KafkaReader;
 import com.neverwinterdp.kafka.producer.servers.KafkaCluster;
+import com.neverwinterdp.kafka.producer.servers.Server;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
+// These tests depend on The zk and Kafka launchers.
 public class TestKafkaProducer {
 
   private int writers = 3;
@@ -28,9 +30,8 @@ public class TestKafkaProducer {
   private KafkaWriter writer;
   private KafkaReader reader;
   private int partition = 1;
-  private int id = 0;
   private String topic;
-  private String dataDir = "/tmp/verytemp";
+  private String dataDir = "./build/";
   private int kafkaBrokers = 3;
   private int zkPort = 2181;
   private int kafkaPort = 9091;
@@ -40,13 +41,17 @@ public class TestKafkaProducer {
   @Before
   public void setUp() throws Exception {
     BasicConfigurator.configure();
-    /* servers = new KafkaCluster(dataDir, zkPort, kafkaPort, kafkaBrokers);
-     servers.start();*/
+    servers = new KafkaCluster(dataDir, zkPort, kafkaPort, kafkaBrokers);
+    servers.start();
     helper = new ZookeeperHelper(zkURL);
     //Get it to work for Existing topic
-    topic= Long.toHexString(Double.doubleToLongBits(Math.random()));
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
   }
 
+  /**
+   * Have 5 threads write to a topic partition, while writing kill leader. 
+   * Check if all messages were writen to kafka despite dead leader.
+   * */
   @Test
   public void testWriteToFailedLeader() throws Exception {
     List<String> messages = new ArrayList<>();
@@ -64,18 +69,18 @@ public class TestKafkaProducer {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
+    //while writer threads are writing, kill the leader
     HostPort leader = helper.getLeaderForTopicAndPartition(topic, partition);
-    /* for (Server server : servers.getKafkaServers()) {
-       if (leader.getHost() == server.getHost() && leader.getPort() == server.getPort()) {
-         server.shutdown();
-       }
-     }*/
+    for (Server server : servers.getKafkaServers()) {
+      if (leader.getHost() == server.getHost() && leader.getPort() == server.getPort()) {
+        server.shutdown();
+      }
+    }
     //Sleep a bit for all writers to finish writing
     Thread.sleep((runDuration * 1000) + 1000);
     reader = new KafkaReader(zkURL, topic, partition);
-    reader.initialize();
     while (reader.hasNext()) {
-      messages.add(reader.read());
+      messages.addAll(reader.read());
     }
     int expected = writers * (((runDuration) / delay) + 1);
     assertEquals(expected, messages.size());
@@ -84,6 +89,6 @@ public class TestKafkaProducer {
   @After
   public void tearDown() throws Exception {
     scheduler.shutdownNow();
-    //  servers.shutdown();
+    servers.shutdown();
   }
 }
