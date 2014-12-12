@@ -22,7 +22,7 @@ public class TuanKafkaCluster {
     this.numOfKafkaInstances = numOfZkInstances;
     this.numOfKafkaInstances = numOfKafkaInstances;
     zookeeperServers = new HashMap<String, Server>();
-    kafkaServers= new HashMap<String, Server>();
+    kafkaServers    = new HashMap<String, Server>();
   }
   
   public TuanKafkaCluster setBaseZKPort(int port) {
@@ -44,17 +44,26 @@ public class TuanKafkaCluster {
     }
 
     for (int i = 0; i < numOfKafkaInstances; i++) {
+      int replication = 1;
+      if(numOfKafkaInstances > 1) replication = 2;
       int id = i + 1;
       String serverName = "kafka-" + id;
-      KafkaServerLauncher kafka = new KafkaServerLauncher(id, serverDir+"/" + serverName, baseKafkaPort + i);
+      KafkaServerLauncher kafka = 
+          new KafkaServerLauncher(id, serverDir+"/" + serverName, baseKafkaPort + i, replication);
       kafka.start();
       kafkaServers.put(serverName, kafka);
     }
   }
 
 
-  public Map<String, Server> getKafkaServers() { return kafkaServers; }
+  public Map<String, Server> getKafkaServerMap() { return kafkaServers; }
 
+  public Server[] getKafkaServers() {
+    Server[] server = new Server[kafkaServers.size()] ;
+    kafkaServers.values().toArray(server);
+    return server;
+  }
+  
   public Map<String, Server> getzookeeperServers() { return zookeeperServers; }
 
   public void shutdown() throws Exception {

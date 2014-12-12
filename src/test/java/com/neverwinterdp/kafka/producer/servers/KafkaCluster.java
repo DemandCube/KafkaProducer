@@ -30,7 +30,7 @@ public class KafkaCluster {
     Thread.sleep(1000);
     KafkaServerLauncher kafka;
     for (int i = 0; i < kafkaBrokers; i++) {
-      kafka = new KafkaServerLauncher(i, dataDir+"/kafka"+i, kafkaPort++);
+      kafka = new KafkaServerLauncher(i, dataDir+"/kafka"+i, kafkaPort++, 1);
       kafka.start();
       kafkaServers.add(kafka);
       Thread.sleep(1000);

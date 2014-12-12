@@ -21,16 +21,17 @@ public class KafkaServerLauncher implements Server {
   int kafkaGroupTracker = 1;
   private Properties properties = new Properties();
 
-  public KafkaServerLauncher(Map<String, String> overrideProperties) {
-    init(overrideProperties);
-  }
-
-  public KafkaServerLauncher(int id, String dataDir, int port) {
+  public KafkaServerLauncher(int id, String dataDir, int port, int replication) {
     Map<String, String> props = new HashMap<String, String>();
     props.put("broker.id", Integer.toString(id));
     props.put("port", Integer.toString(port));
     props.put("log.dirs", dataDir);
+    properties.put("default.replication.factor", Integer.toString(replication));
     init(props);
+  }
+  
+  public KafkaServerLauncher(Map<String, String> overrideProperties) {
+    init(overrideProperties);
   }
 
   void init(Map<String, String> overrideProperties) {
@@ -40,8 +41,14 @@ public class KafkaServerLauncher implements Server {
     properties.put("log.dirs", "./build/data/kafka");
     //props.setProperty("enable.zookeeper", "true");
     properties.put("zookeeper.connect", "127.0.0.1:2181");
+    properties.put("default.replication.factor", "1");
     properties.put("controlled.shutdown.enable", "true");
     properties.put("auto.leader.rebalance.enable", "true");
+    properties.put("controller.socket.timeout.ms", "90000");
+    properties.put("controlled.shutdown.enable", "true");
+    properties.put("controlled.shutdown.max.retries", "3");
+    properties.put("controlled.shutdown.retry.backoff.ms", "60000");
+        
     if (overrideProperties != null) {
       properties.putAll(overrideProperties);
     }
