@@ -23,25 +23,26 @@ import org.apache.log4j.Logger;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
-// TODO die if asked to read a non existent topic/partition
+// TODO die if asked to read a non existent topic/partition?
 public class KafkaReader implements Closeable {
   private static final int BUFFER_SIZE = 64 * 1024;
   private static final int TIMEOUT = 10000;
   private static final Logger logger = Logger.getLogger(KafkaReader.class);
   private ZookeeperHelper helper;
 
-  private long currentOffset = 0;
+  private long currentOffset = -1;
   private SimpleConsumer consumer;
   private String zkURL;
   private String topic;
   private int partition;
   private boolean firstRun;
-  private boolean hasNextOffset = true;
+  private boolean hasNextOffset;
 
   public KafkaReader(String zkURL, String topic, int partition) throws Exception {
     this.zkURL = zkURL;
     this.topic = topic;
     this.partition = partition;
+    hasNextOffset=false;
     initialize();
   }
 

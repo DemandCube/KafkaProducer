@@ -31,7 +31,7 @@ import com.google.common.collect.Multimap;
 
 // TODO get the names right
 // TODO tests
-// TODO sorround in retry block
+// TODO soround in retry block
 public class ZookeeperHelper implements Closeable {
 
   private String zkConnectString;

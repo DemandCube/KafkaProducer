@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.producer.servers;
+package com.neverwinterdp.kafka.servers;
 
 import java.util.HashSet;
 import java.util.Set;

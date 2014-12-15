@@ -15,9 +15,9 @@ import com.neverwinterdp.kafka.producer.util.PropertyUtils;
 /**
  * The main class
  * */
-public class KafkaProducer {
+public class Main {
 
-  private static final Logger logger = Logger.getLogger(KafkaProducer.class);
+  private static final Logger logger = Logger.getLogger(Main.class);
   private static final Random RANDOM = new Random();
   private int writers;
   private long runPeriod;
@@ -28,7 +28,7 @@ public class KafkaProducer {
 
   public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
-    KafkaProducer dataGenerator = new KafkaProducer();
+    Main dataGenerator = new Main();
     dataGenerator.init();
     try {
       dataGenerator.generate();

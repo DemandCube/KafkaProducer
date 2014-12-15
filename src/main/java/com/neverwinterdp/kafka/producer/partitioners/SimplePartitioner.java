@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.producer;
+package com.neverwinterdp.kafka.producer.partitioners;
 
 import kafka.producer.Partitioner;
 import kafka.utils.VerifiableProperties;
@@ -12,11 +12,16 @@ import kafka.utils.VerifiableProperties;
  * */
 public class SimplePartitioner implements Partitioner {
 
-  public SimplePartitioner(VerifiableProperties props) {
-  }
-  
+  public SimplePartitioner(VerifiableProperties props) {}
+
   @Override
   public int partition(Object arg0, int arg1) {
-    return Integer.parseInt((String) arg0);
+    String key = (String) arg0;
+
+    //between "PARTITION:" and ","
+    String partitionString = key.substring(key.indexOf("PARTITION:") + 1, key.indexOf(","));
+    int partition = Integer.parseInt(partitionString);
+    System.out.println("HUHUHU " + partition);
+    return partition <= arg1 ? partition : arg1;
   }
 }

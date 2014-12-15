@@ -132,6 +132,47 @@ public class TestKafkaWriter {
     }
     int expected = writers * (((runDuration) / delay) + 1);
     assertEquals(expected, messages.size());
+    writer.close();
+    reader.close();
+  }
+
+  @Test
+  public void testWriteToCorrectPartition() throws Exception {
+    //create new topic, create writer to partition0, write, read from partition1 get exception
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
+    writer = new KafkaWriter(zkURL, topic, 0, 1);
+    for (int i = 0; i < 100; i++) {
+      writer.run();
+    }
+    reader = new KafkaReader(zkURL, topic, 1);
+    assertTrue(reader.read().size() == 0);
+
+    writer.close();
+    reader.close();
+  }
+
+  @Test(expected = org.apache.zookeeper.KeeperException.NoNodeException.class)
+  public void testReadFromNonExistentPartition() throws Exception {
+    //create new topic, create writer to partition0, write, read from partition1 get exception
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
+    writer = new KafkaWriter(zkURL, topic, 0, 1);
+    for (int i = 0; i < 100; i++) {
+      writer.run();
+    }
+    reader = new KafkaReader(zkURL, topic, 5);
+
+    writer.close();
+    reader.close();
+  }
+
+  @Test(expected = org.apache.zookeeper.KeeperException.NoNodeException.class)
+  public void testWriteToWrongPartition() throws Exception {
+    //create new topic, create writer to partition7, expect exception
+    topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
+    writer = new KafkaWriter(zkURL, topic, 20, 1);
+    for (int i = 0; i < 100; i++) {
+      writer.write(UUID.randomUUID().toString());
+    }
   }
 
   @After

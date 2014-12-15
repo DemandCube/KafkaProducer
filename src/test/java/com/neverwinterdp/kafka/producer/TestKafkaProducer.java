@@ -15,10 +15,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.neverwinterdp.kafka.consumer.KafkaReader;
-import com.neverwinterdp.kafka.producer.servers.KafkaCluster;
-import com.neverwinterdp.kafka.producer.servers.Server;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
+import com.neverwinterdp.kafka.servers.KafkaCluster;
+import com.neverwinterdp.kafka.servers.Server;
 
 // These tests depend on The zk and Kafka launchers.
 public class TestKafkaProducer {

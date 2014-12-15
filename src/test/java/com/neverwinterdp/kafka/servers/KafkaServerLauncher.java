@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.producer.servers;
+package com.neverwinterdp.kafka.servers;
 
 import java.io.File;
 import java.util.HashMap;
