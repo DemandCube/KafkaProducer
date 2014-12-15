@@ -1,58 +1,122 @@
 package com.neverwinterdp.kafka.servers;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 public class KafkaCluster {
+  private int baseZKPort = 2181;
+  private int baseKafkaPort = 9092;
+  private int numOfKafkaInstances = 3;
+  private int numOfZkInstances = 1;
+  private String serverDir;
+  private Map<String, Server> kafkaServers;
+  private Map<String, Server> zookeeperServers;
 
-  private Set<Server> kafkaServers;
-  private Set<Server> zookeeperServers;
-  private int zkPort;
-  private int kafkaPort;
-  private int kafkaBrokers;
-  private String dataDir;
-
-  public KafkaCluster(String dataDir, int zkPort, int kafkaPort, int kafkaBrokers) {
-    super();
-    this.dataDir = dataDir;
-    this.zkPort = zkPort;
-    this.kafkaPort = kafkaPort;
-    this.kafkaBrokers = kafkaBrokers;
-    zookeeperServers = new HashSet<>();
-    kafkaServers= new HashSet<>(kafkaBrokers);
+  public KafkaCluster(String serverDir) {
+    this(serverDir, 1, 3);
   }
 
+
+  public KafkaCluster(String serverDir, int numOfZkInstances, int numOfKafkaInstances) {
+    this.serverDir = serverDir;
+    this.numOfKafkaInstances = numOfZkInstances;
+    this.numOfKafkaInstances = numOfKafkaInstances;
+    zookeeperServers = new HashMap<String, Server>();
+    kafkaServers = new HashMap<String, Server>();
+    deleteDirectory(new File(serverDir));
+  }
+
+  public KafkaCluster setBaseZKPort(int port) {
+    this.baseZKPort = port;
+    return this;
+  }
+
+  public KafkaCluster setBaseKafkaPort(int port) {
+    this.baseKafkaPort = port;
+    return this;
+  }
 
   public void start() throws Exception {
-    ZookeeperServerLauncher zookeeper = new ZookeeperServerLauncher(dataDir+"/zk", zkPort);
-    zookeeper.start();
-    zookeeperServers.add(zookeeper);
-    Thread.sleep(1000);
-    KafkaServerLauncher kafka;
-    for (int i = 0; i < kafkaBrokers; i++) {
-      kafka = new KafkaServerLauncher(i, dataDir+"/kafka"+i, kafkaPort++, 1);
+    for (int i = 0; i < numOfZkInstances; i++) {
+      String serverName = "zookeeper-" + (i + 1);
+      ZookeeperServerLauncher zookeeper =
+          new ZookeeperServerLauncher(serverDir + "/" + serverName, baseZKPort + i);
+      zookeeper.start();
+      zookeeperServers.put(serverName, zookeeper);
+    }
+
+    for (int i = 0; i < numOfKafkaInstances; i++) {
+      int replication = 1;
+      if (numOfKafkaInstances > 1)
+        replication = 2;
+      int id = i + 1;
+      String serverName = "kafka-" + id;
+      KafkaServerLauncher kafka =
+          new KafkaServerLauncher(id, serverDir + "/" + serverName, baseKafkaPort + i, replication);
       kafka.start();
-      kafkaServers.add(kafka);
-      Thread.sleep(1000);
-    }    
+      kafkaServers.put(serverName, kafka);
+    }
   }
 
+  public static boolean deleteDirectory(File directory) {
+    if (directory.exists()) {
+      File[] files = directory.listFiles();
+      if (null != files) {
+        for (int i = 0; i < files.length; i++) {
+          if (files[i].isDirectory()) {
+            deleteDirectory(files[i]);
+          }
+          else {
+            files[i].delete();
+          }
+        }
+      }
+    }
+    return (directory.delete());
+  }
 
-  public Set<Server> getKafkaServers() {
+  public Map<String, Server> getKafkaServerMap() {
     return kafkaServers;
   }
 
-  public Set<Server> getzookeeperServers() {
+  public Server[] getKafkaServers() {
+    Server[] server = new Server[kafkaServers.size()];
+    kafkaServers.values().toArray(server);
+    return server;
+  }
+
+  public Map<String, Server> getzookeeperServers() {
     return zookeeperServers;
   }
 
-  public void shutdown() throws Exception {
-    for (Server server : kafkaServers) {
+  public void shutdown() {
+    for (Server server : kafkaServers.values()) {
       server.shutdown();
     }
 
-    for (Server server : zookeeperServers) {
+    for (Server server : zookeeperServers.values()) {
       server.shutdown();
     }
+  }
+
+  public String getZKConnect() {
+    StringBuilder b = new StringBuilder();
+    for (Server server : zookeeperServers.values()) {
+      if (b.length() > 0)
+        b.append(",");
+      b.append("127.0.0.1:").append(server.getPort());
+    }
+    return b.toString();
+  }
+
+  public String getKafkaConnect() {
+    StringBuilder b = new StringBuilder();
+    for (Server server : kafkaServers.values()) {
+      if (b.length() > 0)
+        b.append(",");
+      b.append("127.0.0.1:").append(server.getPort());
+    }
+    return b.toString();
   }
 }

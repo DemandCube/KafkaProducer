@@ -15,13 +15,13 @@ public class SimplePartitioner implements Partitioner {
   public SimplePartitioner(VerifiableProperties props) {}
 
   @Override
-  public int partition(Object arg0, int arg1) {
-    String key = (String) arg0;
+  public int partition(Object key, int numPartitions) {
+    String keyString = (String) key;
 
     //between "PARTITION:" and ","
-    String partitionString = key.substring(key.indexOf("PARTITION:") + 1, key.indexOf(","));
+    String partitionString = keyString.substring(keyString.indexOf("PARTITION:") + 1, keyString.indexOf(","));
     int partition = Integer.parseInt(partitionString);
-    System.out.println("HUHUHU " + partition);
-    return partition <= arg1 ? partition : arg1;
+    //System.out.println("HUHUHU " + partition);
+    return partition <= numPartitions ? partition : numPartitions;
   }
 }

@@ -70,4 +70,13 @@ public class Utils {
     }
     return json;
   }
+
+  public static void printRunningThreads() {
+    System.out.println("Running Threads");
+    int count = 0;
+    Map<Thread, StackTraceElement[]> threads = Thread.getAllStackTraces();
+    for (Map.Entry<Thread, StackTraceElement[]> entry : threads.entrySet()) {
+      System.out.println(++count + ".Thread: " + entry.getKey().getName());
+    }
+  }
 }

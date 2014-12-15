@@ -20,7 +20,6 @@ import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 import com.neverwinterdp.kafka.servers.KafkaCluster;
 import com.neverwinterdp.kafka.servers.Server;
 
-// These tests depend on The zk and Kafka launchers.
 public class TestKafkaProducer {
 
   private int writers = 3;
@@ -34,14 +33,13 @@ public class TestKafkaProducer {
   private String dataDir = "./build/";
   private int kafkaBrokers = 3;
   private int zkPort = 2181;
-  private int kafkaPort = 9091;
-
   private String zkURL = "127.0.0.1:" + zkPort;
+  private int zkBrokers = 1;
 
   @Before
   public void setUp() throws Exception {
     BasicConfigurator.configure();
-    servers = new KafkaCluster(dataDir, zkPort, kafkaPort, kafkaBrokers);
+    servers = new KafkaCluster(dataDir, zkBrokers, kafkaBrokers);
     servers.start();
     helper = new ZookeeperHelper(zkURL);
     //Get it to work for Existing topic

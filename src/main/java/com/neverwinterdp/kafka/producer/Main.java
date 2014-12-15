@@ -1,7 +1,6 @@
 package com.neverwinterdp.kafka.producer;
 
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -11,6 +10,7 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
 import com.neverwinterdp.kafka.producer.util.PropertyUtils;
+import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
 /**
  * The main class
@@ -18,13 +18,13 @@ import com.neverwinterdp.kafka.producer.util.PropertyUtils;
 public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class);
-  private static final Random RANDOM = new Random();
   private int writers;
   private long runPeriod;
   private long delay;
   private String zkURL;
   private String topic;
   private int partitions;
+  private int replicationFactor;
 
   public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
@@ -44,18 +44,21 @@ public class Main {
     delay = Integer.parseInt(props.getProperty("delay"));
     topic = props.getProperty("topic");
     partitions = Integer.parseInt(props.getProperty("partitions"));
+    replicationFactor = Integer.parseInt(props.getProperty("replication-factor"));
     runPeriod = Integer.parseInt(props.getProperty("run-duration"));
     zkURL = props.getProperty("zookeeper");
-    //TODO ensure topics, partitions exists if not create them
+    //ensure topics, partitions exists if not create them
+    try (ZookeeperHelper helper = new ZookeeperHelper(zkURL)) {
+      helper.createTopic(topic, partitions, replicationFactor);
+    }
   }
 
-  //TODO assign partitions to writers in round robin
+  //assign partitions to writers in round robin
   private void generate() throws Exception {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
     KafkaWriter writer;
-
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, RANDOM.nextInt(partitions), i);
+      writer = new KafkaWriter(zkURL, topic, i % partitions, i);
       final ScheduledFuture<?> timeHandle = scheduler.scheduleAtFixedRate(
           writer, 0, delay, TimeUnit.SECONDS);
 
@@ -71,4 +74,5 @@ public class Main {
     }
     logger.info(scheduler.shutdownNow());
   }
+
 }

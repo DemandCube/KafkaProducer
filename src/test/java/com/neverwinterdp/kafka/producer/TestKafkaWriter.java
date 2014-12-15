@@ -1,5 +1,6 @@
 package com.neverwinterdp.kafka.producer;
 
+import static com.neverwinterdp.kafka.producer.util.Utils.printRunningThreads;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -17,9 +18,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.BasicConfigurator;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.neverwinterdp.kafka.consumer.KafkaReader;
+import com.neverwinterdp.kafka.servers.KafkaCluster;
 
 // Start a zookeeper and at least 2 kafka brokers before running these tests
 public class TestKafkaWriter {
@@ -33,6 +36,15 @@ public class TestKafkaWriter {
   private int partition = 1;
   private String topic;
   private int writers;
+  private static KafkaCluster cluster;
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    printRunningThreads();
+    cluster = new KafkaCluster("./build/KafkaCluster", 1, 3);
+    cluster.start();
+    Thread.sleep(3000);
+  }
 
   @Before
   public void setUp() throws Exception {
@@ -180,5 +192,6 @@ public class TestKafkaWriter {
     writer.close();
     reader.close();
     scheduler.shutdownNow();
+    cluster.shutdown();
   }
 }
