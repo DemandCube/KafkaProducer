@@ -32,7 +32,6 @@ public class KafkaWriter implements Runnable, Closeable {
 
   private String topic;
   private int partition;
-  private String message;
   private MessageGenerator<String> messageGenerator;
   private Class<? extends Partitioner> partitionerClass;
   private ZookeeperHelper helper;
@@ -78,7 +77,7 @@ public class KafkaWriter implements Runnable, Closeable {
 
   @Override
   public void run() {
-    message = messageGenerator.next();
+    String message = messageGenerator.next();
     logger.info(Thread.currentThread().getName() + message);
     try {
       write(message);
@@ -99,13 +98,8 @@ public class KafkaWriter implements Runnable, Closeable {
       key = message.substring(message.indexOf("PARTITION"));
     }
     logger.info("KEY: " + key);
-    KeyedMessage<String, String> data =
-        new KeyedMessage<String, String>(topic, key, message);
+    KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
     producer.send(data);
-  }
-
-  public String getMessage() {
-    return message;
   }
 
   public void setPartitionerClass(Class<? extends Partitioner> clazz) {

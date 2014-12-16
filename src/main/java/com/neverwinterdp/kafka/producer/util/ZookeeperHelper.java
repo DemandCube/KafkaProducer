@@ -141,8 +141,7 @@ public class ZookeeperHelper implements Closeable {
     if (zkClient.checkExists().forPath(path) == null) {
 
       String created =
-          zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-              .forPath(path);
+          zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(path);
       logger.debug("what happened " + created);
     }
     Stat stat = zkClient.setData().forPath(path, data);
@@ -182,8 +181,7 @@ public class ZookeeperHelper implements Closeable {
    * @return
    * @throws Exception
    */
-  private PartitionState getPartitionState(String topic, int partion)
-      throws Exception {
+  private PartitionState getPartitionState(String topic, int partion) throws Exception {
     try {
       zkClient.getData().forPath(topicInfoLocation + topic);
     } catch (NoNodeException nne) {
@@ -192,12 +190,9 @@ public class ZookeeperHelper implements Closeable {
       logger.error(nne.getMessage());
       return new PartitionState();
     }
-    byte[] bytes = zkClient.getData()
-        .forPath(
-            topicInfoLocation + topic + "/partitions/" + partion
-                + "/state");
-    PartitionState partitionState = Utils.toClass(bytes,
-        PartitionState.class);
+    byte[] bytes = 
+        zkClient.getData().forPath(topicInfoLocation + topic + "/partitions/" + partion + "/state");
+    PartitionState partitionState = Utils.toClass(bytes, PartitionState.class);
     return partitionState;
   }
 

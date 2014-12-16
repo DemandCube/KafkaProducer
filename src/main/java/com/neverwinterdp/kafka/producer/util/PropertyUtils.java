@@ -24,15 +24,13 @@ public class PropertyUtils {
   }
 
   public static Properties getPropertyFile(String filename) {
-
     Properties prop = new Properties();
     InputStream inputStream = null;
 
     String path;
     
     try {
-      path = System.getProperty("user.dir")
-          + System.getProperty("file.separator") + filename;
+      path = System.getProperty("user.dir") + System.getProperty("file.separator") + filename;
       logger.info("Path " + path);
       inputStream = new FileInputStream(path);
     } catch (FileNotFoundException e) {
