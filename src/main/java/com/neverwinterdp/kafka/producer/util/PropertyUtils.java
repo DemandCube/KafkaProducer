@@ -24,7 +24,6 @@ public class PropertyUtils {
   }
 
   public static Properties getPropertyFile(String filename) {
-
     Properties prop = new Properties();
     InputStream inputStream = null;
 

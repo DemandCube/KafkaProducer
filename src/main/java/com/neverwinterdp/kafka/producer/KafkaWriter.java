@@ -35,7 +35,6 @@ public class KafkaWriter implements Runnable, Closeable {
 
   private String topic;
   private int partition;
-
   private MessageGenerator<String> messageGenerator;
   private Class<? extends Partitioner> partitionerClass;
   private ZookeeperHelper helper;
