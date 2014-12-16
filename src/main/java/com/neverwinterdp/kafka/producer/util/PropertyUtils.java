@@ -29,10 +29,9 @@ public class PropertyUtils {
     InputStream inputStream = null;
 
     String path;
-    
+
     try {
-      path = System.getProperty("user.dir")
-          + System.getProperty("file.separator") + filename;
+      path = System.getProperty("user.dir") + System.getProperty("file.separator") + filename;
       logger.info("Path " + path);
       inputStream = new FileInputStream(path);
     } catch (FileNotFoundException e) {
@@ -58,8 +57,7 @@ public class PropertyUtils {
   boolean saveProperty(String key, String value) {
 
     properties.setProperty(key, value);
-    String path = System.getProperty("user.dir")
-        + System.getProperty("file.separator") + filename;
+    String path = System.getProperty("user.dir") + System.getProperty("file.separator") + filename;
     try {
       properties.store(new FileOutputStream(path), null);
     } catch (FileNotFoundException e) {

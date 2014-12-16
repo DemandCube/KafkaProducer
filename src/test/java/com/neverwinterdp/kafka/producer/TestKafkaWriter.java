@@ -58,8 +58,7 @@ public class TestKafkaWriter {
   }
 
   /**
-   * Write 100 messages to a non existent topic. 
-   * If no Exception thrown then we are good.
+   * Write 100 messages to a non existent topic. If no Exception thrown then we are good.
    * */
   @Test
   public void testWriteToNonExistentTopic() throws Exception {
@@ -94,9 +93,7 @@ public class TestKafkaWriter {
   }
 
   /**
-   * Write to kafka, write to buffer. 
-   * Read from kafka, read from buffer.
-   * Should be equal.
+   * Write to kafka, write to buffer. Read from kafka, read from buffer. Should be equal.
    * */
   @Test
   public void testWriteMessageOrder() throws Exception {
@@ -114,21 +111,20 @@ public class TestKafkaWriter {
   }
 
   /**
-   * Start 6 writers to same topic/partition. Run them for a while, 
-   * read from topic and partition. 
+   * Start 6 writers to same topic/partition. Run them for a while, read from topic and partition.
    * */
   @Test
   public void testManyWriterThreads() throws Exception {
     List<String> messages = new ArrayList<>();
-    //6 writers, writing every 5 seconds for 30 seconds
+    // 6 writers, writing every 5 seconds for 30 seconds
     int writers = 6;
     int delay = 5;
     int runDuration = 30;
 
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter(zkURL, topic, partition, i);
-      final ScheduledFuture<?> timeHandle = scheduler.scheduleAtFixedRate(
-          writer, 0, delay, TimeUnit.SECONDS);
+      final ScheduledFuture<?> timeHandle =
+          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {
@@ -136,7 +132,7 @@ public class TestKafkaWriter {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
-    //Sleep a bit for all writers to finish writing
+    // Sleep a bit for all writers to finish writing
     Thread.sleep((runDuration * 1000) + 1000);
     reader = new KafkaReader(zkURL, topic, partition);
     while (reader.hasNext()) {
@@ -150,7 +146,7 @@ public class TestKafkaWriter {
 
   @Test
   public void testWriteToCorrectPartition() throws Exception {
-    //create new topic, create writer to partition0, write, read from partition1 get exception
+    // create new topic, create writer to partition0, write, read from partition1 get exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     writer = new KafkaWriter(zkURL, topic, 0, 1);
     for (int i = 0; i < 100; i++) {
@@ -165,7 +161,7 @@ public class TestKafkaWriter {
 
   @Test(expected = org.apache.zookeeper.KeeperException.NoNodeException.class)
   public void testReadFromNonExistentPartition() throws Exception {
-    //create new topic, create writer to partition0, write, read from partition1 get exception
+    // create new topic, create writer to partition0, write, read from partition1 get exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     writer = new KafkaWriter(zkURL, topic, 0, 1);
     for (int i = 0; i < 100; i++) {
@@ -179,7 +175,7 @@ public class TestKafkaWriter {
 
   @Test(expected = org.apache.zookeeper.KeeperException.NoNodeException.class)
   public void testWriteToWrongPartition() throws Exception {
-    //create new topic, create writer to partition7, expect exception
+    // create new topic, create writer to partition7, expect exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     writer = new KafkaWriter(zkURL, topic, 20, 1);
     for (int i = 0; i < 100; i++) {

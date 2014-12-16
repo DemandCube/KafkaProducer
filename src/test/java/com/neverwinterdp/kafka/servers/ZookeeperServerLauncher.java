@@ -16,7 +16,7 @@ import com.neverwinterdp.kafka.producer.util.Utils;
 
 /**
  * @author Tuan Nguyen
- * @email  tuan08@gmail.com
+ * @email tuan08@gmail.com
  */
 public class ZookeeperServerLauncher implements Server {
   private ZookeeperLaucher launcher;
@@ -39,9 +39,9 @@ public class ZookeeperServerLauncher implements Server {
 
   void init(Map<String, String> overrideProperties) {
     zkProperties.put("dataDir", "./build/data/zookeeper");
-    //the port at which the clients will connect
+    // the port at which the clients will connect
     zkProperties.put("clientPort", "2181");
-    //disable the per-ip limit on the number of connections since this is a non-production config
+    // disable the per-ip limit on the number of connections since this is a non-production config
     zkProperties.put("maxClientCnxns", "0");
     if (overrideProperties != null) {
       zkProperties.putAll(overrideProperties);
@@ -67,26 +67,23 @@ public class ZookeeperServerLauncher implements Server {
       }
     };
     zkThread.start();
-    //wait to make sure the server is launched
+    // wait to make sure the server is launched
     Thread.sleep(3000);
   }
 
   ZookeeperLaucher create(Properties zkProperties) throws ConfigException, IOException {
     QuorumPeerConfig zkConfig = new QuorumPeerConfig();
     zkConfig.parseProperties(zkProperties);
-    DatadirCleanupManager purgeMgr = new DatadirCleanupManager(
-        zkConfig.getDataDir(),
-        zkConfig.getDataLogDir(),
-        zkConfig.getSnapRetainCount(),
-        zkConfig.getPurgeInterval());
+    DatadirCleanupManager purgeMgr =
+        new DatadirCleanupManager(zkConfig.getDataDir(), zkConfig.getDataLogDir(),
+            zkConfig.getSnapRetainCount(), zkConfig.getPurgeInterval());
     purgeMgr.start();
 
     if (zkConfig.getServers().size() > 0) {
       return new QuorumPeerMainExt(zkConfig);
     } else {
-      System.out.println(
-          "Either no config or no quorum defined in config, running in standalone mode"
-          );
+      System.out
+          .println("Either no config or no quorum defined in config, running in standalone mode");
       // there is only server in the quorum -- run as standalone
       return new ZooKeeperServerMainExt(zkConfig);
     }
@@ -132,7 +129,7 @@ public class ZookeeperServerLauncher implements Server {
     public void start() throws Exception {
       ServerConfig config = new ServerConfig();
       config.readFrom(qConfig);
-      //ManagedUtil.registerLog4jMBeans();
+      // ManagedUtil.registerLog4jMBeans();
       runFromConfig(config);
     }
 

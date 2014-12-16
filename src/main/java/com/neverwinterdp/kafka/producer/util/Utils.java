@@ -19,11 +19,9 @@ public class Utils {
   static ObjectMapper mapper = new ObjectMapper();
 
   /**
-   * Convert a byte array containing a JSON string to a map of key/value
-   * pairs.
+   * Convert a byte array containing a JSON string to a map of key/value pairs.
    * 
-   * @param data
-   *            byte array containing the key/value pair string
+   * @param data byte array containing the key/value pair string
    * 
    * @return a new map containing the key/value pairs
    */
@@ -39,8 +37,7 @@ public class Utils {
     } catch (Exception e) {
       String contents;
       contents = new String(data, Charsets.UTF_8);
-      throw new RuntimeException(
-          "Error parsing JSON string: " + contents, e);
+      throw new RuntimeException("Error parsing JSON string: " + contents, e);
     }
   }
 
@@ -55,8 +52,7 @@ public class Utils {
     } catch (Exception e) {
       String contents;
       contents = new String(data, Charsets.UTF_8);
-      throw new RuntimeException(
-          "Error parsing JSON string: " + contents, e);
+      throw new RuntimeException("Error parsing JSON string: " + contents, e);
     }
   }
 

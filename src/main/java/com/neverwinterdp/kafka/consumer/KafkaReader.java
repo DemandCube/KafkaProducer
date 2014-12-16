@@ -42,7 +42,7 @@ public class KafkaReader implements Closeable {
     this.zkURL = zkURL;
     this.topic = topic;
     this.partition = partition;
-    hasNextOffset=false;
+    hasNextOffset = false;
     initialize();
   }
 
@@ -63,10 +63,9 @@ public class KafkaReader implements Closeable {
     }
     firstRun = false;
     List<String> messages = new LinkedList<>();
-    FetchRequest req = new FetchRequestBuilder()
-        .clientId(getClientName())
-        .addFetch(topic, partition, currentOffset, 100000)
-        .build();
+    FetchRequest req =
+        new FetchRequestBuilder().clientId(getClientName())
+            .addFetch(topic, partition, currentOffset, 100000).build();
 
     FetchResponse resp = consumer.fetch(req);
     if (resp.hasError()) {
@@ -93,8 +92,7 @@ public class KafkaReader implements Closeable {
     logger.info("currentOffset:" + currentOffset + " nextOffset:" + nextOffset);
     if (currentOffset < nextOffset) {
       hasNextOffset = true;
-    }
-    else {
+    } else {
       hasNextOffset = false;
     }
     currentOffset = nextOffset;
@@ -109,16 +107,16 @@ public class KafkaReader implements Closeable {
   }
 
   /**
-   * To get Earliest offset ask for kafka.api.OffsetRequest.EarliestTime().
-   * To get latest offset ask for kafka.api.OffsetRequest.LatestTime()
+   * To get Earliest offset ask for kafka.api.OffsetRequest.EarliestTime(). To get latest offset ask
+   * for kafka.api.OffsetRequest.LatestTime()
    * */
   public long getOffset(long time) {
     Map<TopicAndPartition, PartitionOffsetRequestInfo> offsetInfo =
         new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
-    offsetInfo.put(new TopicAndPartition(topic, partition), new PartitionOffsetRequestInfo(
-        time, 1));
-    OffsetResponse response = consumer
-        .getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
+    offsetInfo
+        .put(new TopicAndPartition(topic, partition), new PartitionOffsetRequestInfo(time, 1));
+    OffsetResponse response =
+        consumer.getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
             .CurrentVersion(), getClientName()));
     long[] endOffset = response.offsets(topic, partition);
     logger.info("endoffsets:" + Arrays.toString(endOffset) + " TIME:" + time);

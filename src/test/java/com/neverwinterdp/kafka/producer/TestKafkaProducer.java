@@ -42,24 +42,24 @@ public class TestKafkaProducer {
     servers = new KafkaCluster(dataDir, zkBrokers, kafkaBrokers);
     servers.start();
     helper = new ZookeeperHelper(zkURL);
-    //Get it to work for Existing topic
+    // Get it to work for Existing topic
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
   }
 
   /**
-   * Have 5 threads write to a topic partition, while writing kill leader. 
-   * Check if all messages were writen to kafka despite dead leader.
+   * Have 5 threads write to a topic partition, while writing kill leader. Check if all messages
+   * were writen to kafka despite dead leader.
    * */
   @Test
   public void testWriteToFailedLeader() throws Exception {
     List<String> messages = new ArrayList<>();
     int delay = 5;
     int runDuration = 30;
-    //6 writers, writing every 5 seconds for 30 seconds   
+    // 6 writers, writing every 5 seconds for 30 seconds
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter(zkURL, topic, partition, i);
-      final ScheduledFuture<?> timeHandle = scheduler.scheduleAtFixedRate(
-          writer, 0, delay, TimeUnit.SECONDS);
+      final ScheduledFuture<?> timeHandle =
+          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {
@@ -67,14 +67,14 @@ public class TestKafkaProducer {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
-    //while writer threads are writing, kill the leader
+    // while writer threads are writing, kill the leader
     HostPort leader = helper.getLeaderForTopicAndPartition(topic, partition);
     for (Server server : servers.getKafkaServers()) {
       if (leader.getHost() == server.getHost() && leader.getPort() == server.getPort()) {
         server.shutdown();
       }
     }
-    //Sleep a bit for all writers to finish writing
+    // Sleep a bit for all writers to finish writing
     Thread.sleep((runDuration * 1000) + 1000);
     reader = new KafkaReader(zkURL, topic, partition);
     while (reader.hasNext()) {

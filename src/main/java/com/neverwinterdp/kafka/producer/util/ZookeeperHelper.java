@@ -32,6 +32,7 @@ import com.google.common.collect.Multimap;
 // TODO get the names right
 // TODO tests
 // TODO soround in retry block
+// TODO delete path should throw exception and any other
 public class ZookeeperHelper implements Closeable {
 
   private String zkConnectString;
@@ -40,16 +41,14 @@ public class ZookeeperHelper implements Closeable {
   private CuratorFramework zkClient;
   private PathChildrenCache pathChildrenCache;
 
-  private static final Logger logger = Logger
-      .getLogger(ZookeeperHelper.class);
+  private static final Logger logger = Logger.getLogger(ZookeeperHelper.class);
   private String brokerInfoLocation = "/brokers/ids/";
   private String topicInfoLocation = "/brokers/topics/";
 
   public ZookeeperHelper(String zookeeperURL) throws InterruptedException {
     super();
     zkConnectString = zookeeperURL;
-    zkClient = CuratorFrameworkFactory.newClient(zkConnectString,
-        retryPolicy);
+    zkClient = CuratorFrameworkFactory.newClient(zkConnectString, retryPolicy);
     init();
   }
 
@@ -60,16 +59,14 @@ public class ZookeeperHelper implements Closeable {
 
   public HostPort getLeaderForTopicAndPartition(String topic, int partition) throws Exception {
 
-    String[] values = getLeader(topic, partition).split(
-        ":");
+    String[] values = getLeader(topic, partition).split(":");
     if (values.length == 2)
       return new HostPort(values[0], values[1]);
     else
       return null;
   }
 
-  private String getLeader(String topic, int partition)
-      throws Exception {
+  private String getLeader(String topic, int partition) throws Exception {
     String leader = "";
 
     PartitionState partitionState = getPartitionState(topic, partition);
@@ -91,14 +88,14 @@ public class ZookeeperHelper implements Closeable {
     Broker part = Utils.toClass(bytes, Broker.class);
     logger.debug("leader " + part);
 
-    return leader.concat(part.getHost()).concat(":")
-        .concat(String.valueOf(part.getPort()));
+    return leader.concat(part.getHost()).concat(":").concat(String.valueOf(part.getPort()));
 
   }
 
-  /* /brokers/[0...N] --> { "host" : "host:port",
-                            "topics" : {"topic1": ["partition1" ... "partitionN"], ...,
-                                        "topicN": ["partition1" ... "partitionN"] } }*/
+  /*
+   * /brokers/[0...N] --> { "host" : "host:port", "topics" : {"topic1": ["partition1" ...
+   * "partitionN"], ..., "topicN": ["partition1" ... "partitionN"] } }
+   */
   public Collection<HostPort> getBrokersForTopicAndPartition(String topic, int partition)
       throws Exception {
     PartitionState partitionState = getPartitionState(topic, partition);
@@ -136,13 +133,12 @@ public class ZookeeperHelper implements Closeable {
   }
 
   public int writeData(String path, byte[] data) throws Exception {
-    //TODO exit if data is not a json obj
+    // TODO exit if data is not a json obj
     logger.info("writeData. path: " + path + " data: " + Arrays.toString(data));
     if (zkClient.checkExists().forPath(path) == null) {
 
       String created =
-          zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
-              .forPath(path);
+          zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(path);
       logger.debug("what happened " + created);
     }
     Stat stat = zkClient.setData().forPath(path, data);
@@ -182,8 +178,7 @@ public class ZookeeperHelper implements Closeable {
    * @return
    * @throws Exception
    */
-  private PartitionState getPartitionState(String topic, int partion)
-      throws Exception {
+  private PartitionState getPartitionState(String topic, int partion) throws Exception {
     try {
       zkClient.getData().forPath(topicInfoLocation + topic);
     } catch (NoNodeException nne) {
@@ -192,23 +187,19 @@ public class ZookeeperHelper implements Closeable {
       logger.error(nne.getMessage());
       return new PartitionState();
     }
-    byte[] bytes = zkClient.getData()
-        .forPath(
-            topicInfoLocation + topic + "/partitions/" + partion
-                + "/state");
-    PartitionState partitionState = Utils.toClass(bytes,
-        PartitionState.class);
+    byte[] bytes =
+        zkClient.getData().forPath(topicInfoLocation + topic + "/partitions/" + partion + "/state");
+    PartitionState partitionState = Utils.toClass(bytes, PartitionState.class);
     return partitionState;
   }
 
   /**
-  * @param topic
-  * @param partion
-  * @return
-  * @throws Exception
-  */
-  private Topic getTopicInfo(String topic)
-      throws Exception {
+   * @param topic
+   * @param partion
+   * @return
+   * @throws Exception
+   */
+  private Topic getTopicInfo(String topic) throws Exception {
     try {
       zkClient.getData().forPath(topicInfoLocation + topic);
     } catch (NoNodeException nne) {
@@ -217,11 +208,8 @@ public class ZookeeperHelper implements Closeable {
       logger.error(nne.getMessage());
       return new Topic();
     }
-    byte[] bytes = zkClient.getData()
-        .forPath(
-            topicInfoLocation + topic);
-    Topic topik = Utils.toClass(bytes,
-        Topic.class);
+    byte[] bytes = zkClient.getData().forPath(topicInfoLocation + topic);
+    Topic topik = Utils.toClass(bytes, Topic.class);
     return topik;
   }
 
@@ -237,7 +225,7 @@ public class ZookeeperHelper implements Closeable {
     this.topicInfoLocation = topicInfoLocation;
   }
 
-  //write to 
+  // write to
   public void updateProgress(String path, byte[] data) throws Exception {
     writeData(path, data);
   }
@@ -269,17 +257,15 @@ public class ZookeeperHelper implements Closeable {
     }
   }
 
-  /*  //Listener for node changes
-    public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
-      // in this example we will cache data. Notice that this is optional.
-      logger.info("setTopicNodeListener. ");
-      pathChildrenCache =
-          new PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(),
-              true);
-      pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
-
-      pathChildrenCache.getListenable().addListener(topicNodeListener);
-    }*/
+  /*
+   * //Listener for node changes public void setTopicNodeListener(TopicNodeListener
+   * topicNodeListener) throws Exception { // in this example we will cache data. Notice that this
+   * is optional. logger.info("setTopicNodeListener. "); pathChildrenCache = new
+   * PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(), true);
+   * pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
+   * 
+   * pathChildrenCache.getListenable().addListener(topicNodeListener); }
+   */
 
   @Override
   public void close() throws IOException {
@@ -301,7 +287,7 @@ public class ZookeeperHelper implements Closeable {
     try {
       Thread.sleep(3000);
     } catch (InterruptedException e) {
-    //Hack
+      // Hack
     }
     client.close();
   }
@@ -363,9 +349,8 @@ class Broker {
 
   @Override
   public String toString() {
-    return "Partition [host=" + host + ", jmx_port=" + jmx_port + ", port="
-        + port + ", timestamp=" + timestamp + ", version=" + version
-        + "]";
+    return "Partition [host=" + host + ", jmx_port=" + jmx_port + ", port=" + port + ", timestamp="
+        + timestamp + ", version=" + version + "]";
   }
 }
 
@@ -424,9 +409,8 @@ class PartitionState {
 
   @Override
   public String toString() {
-    return "PartitionState [controller_epoch=" + controller_epoch
-        + ", isr=" + isr + ", leader=" + leader + ", leader_epoch="
-        + leader_epoch + ", version=" + version + "]";
+    return "PartitionState [controller_epoch=" + controller_epoch + ", isr=" + isr + ", leader="
+        + leader + ", leader_epoch=" + leader_epoch + ", version=" + version + "]";
   }
 }
 

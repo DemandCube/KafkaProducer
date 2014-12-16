@@ -12,9 +12,9 @@ import com.neverwinterdp.kafka.producer.partitioners.SimplePartitioner;
 // PARTITION:0, WriterID:1, SEQUENCE:100
 
 /**
- * A message producer for the kafka writer. 
- * Alternate implementations of this class will have a blocking queue that calls to next() poll.
- * This will allow assynchronous producers of data to put in to the blocking queue as well.
+ * A message producer for the kafka writer. Alternate implementations of this class will have a
+ * blocking queue that calls to next() poll. This will allow assynchronous producers of data to put
+ * in to the blocking queue as well.
  * 
  * Note that a message generator is responsible for defining its partitioner
  * */
@@ -46,10 +46,9 @@ public class SampleMessageGenerator implements MessageGenerator<String> {
   @Override
   public String next() {
     now = new Date();
-    message = "TOPIC:" + topic + ", PARTITION:"
-        + partition + ", WriterID:" + writerId
-        + ", SEQUENCE:" + sequenceID.incrementAndGet()
-        + ", TIME:" + dateFormat.format(now);
+    message =
+        "TOPIC:" + topic + ", PARTITION:" + partition + ", WriterID:" + writerId + ", SEQUENCE:"
+            + sequenceID.incrementAndGet() + ", TIME:" + dateFormat.format(now);
     return message;
   }
 

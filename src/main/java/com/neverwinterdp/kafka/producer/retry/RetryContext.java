@@ -12,4 +12,12 @@ public interface RetryContext {
   long waitDuration();
 
   void await() throws InterruptedException;
+
+  void reset();
+
+  void setException(Exception e);
+
+  void incrementRetryCount();
+
+  void setShouldRetry(boolean b);
 }

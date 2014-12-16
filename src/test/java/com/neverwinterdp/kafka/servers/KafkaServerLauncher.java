@@ -13,7 +13,7 @@ import com.neverwinterdp.kafka.producer.util.Utils;
 
 /**
  * @author Tuan Nguyen
- * @email  tuan08@gmail.com
+ * @email tuan08@gmail.com
  */
 public class KafkaServerLauncher implements Server {
   private KafkaServer server;
@@ -29,7 +29,7 @@ public class KafkaServerLauncher implements Server {
     properties.put("default.replication.factor", Integer.toString(replication));
     init(props);
   }
-  
+
   public KafkaServerLauncher(Map<String, String> overrideProperties) {
     init(overrideProperties);
   }
@@ -39,7 +39,7 @@ public class KafkaServerLauncher implements Server {
     properties.put("broker.id", "1");
     properties.put("auto.create.topics.enable", "true");
     properties.put("log.dirs", "./build/data/kafka");
-    //props.setProperty("enable.zookeeper", "true");
+    // props.setProperty("enable.zookeeper", "true");
     properties.put("zookeeper.connect", "127.0.0.1:2181");
     properties.put("default.replication.factor", "1");
     properties.put("controlled.shutdown.enable", "true");
@@ -48,7 +48,7 @@ public class KafkaServerLauncher implements Server {
     properties.put("controlled.shutdown.enable", "true");
     properties.put("controlled.shutdown.max.retries", "3");
     properties.put("controlled.shutdown.retry.backoff.ms", "60000");
-        
+
     if (overrideProperties != null) {
       properties.putAll(overrideProperties);
     }
@@ -70,7 +70,7 @@ public class KafkaServerLauncher implements Server {
       }
     };
     thread.start();
-    //Wait to make sure the server is launched
+    // Wait to make sure the server is launched
     Thread.sleep(1000);
   }
 
@@ -79,17 +79,17 @@ public class KafkaServerLauncher implements Server {
     if (server == null)
       return;
     long startTime = System.currentTimeMillis();
-    //server.awaitShutdown();
-    //server.socketServer().shutdown();
-    //server.kafkaController().shutdown();
-    //server.kafkaScheduler().shutdown();
-    //server.replicaManager().shutdown() ;
-    //kafkaGroup.interrupt() ;
+    // server.awaitShutdown();
+    // server.socketServer().shutdown();
+    // server.kafkaController().shutdown();
+    // server.kafkaScheduler().shutdown();
+    // server.replicaManager().shutdown() ;
+    // kafkaGroup.interrupt() ;
     server.shutdown();
-    //server.kafkaController().shutdown();
-    //server.replicaManager().replicaFetcherManager().closeAllFetchers();
-    //server.kafkaScheduler().shutdown();
-    //server.logManager().shutdown();
+    // server.kafkaController().shutdown();
+    // server.replicaManager().replicaFetcherManager().closeAllFetchers();
+    // server.kafkaScheduler().shutdown();
+    // server.logManager().shutdown();
     kafkaGroup.interrupt();
     kafkaGroup = null;
     server = null;

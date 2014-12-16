@@ -47,20 +47,20 @@ public class Main {
     replicationFactor = Integer.parseInt(props.getProperty("replication-factor"));
     runPeriod = Integer.parseInt(props.getProperty("run-duration"));
     zkURL = props.getProperty("zookeeper");
-    //ensure topics, partitions exists if not create them
+    // ensure topics, partitions exists if not create them
     try (ZookeeperHelper helper = new ZookeeperHelper(zkURL)) {
       helper.createTopic(topic, partitions, replicationFactor);
     }
   }
 
-  //assign partitions to writers in round robin
+  // assign partitions to writers in round robin
   private void generate() throws Exception {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
     KafkaWriter writer;
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter(zkURL, topic, i % partitions, i);
-      final ScheduledFuture<?> timeHandle = scheduler.scheduleAtFixedRate(
-          writer, 0, delay, TimeUnit.SECONDS);
+      final ScheduledFuture<?> timeHandle =
+          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {

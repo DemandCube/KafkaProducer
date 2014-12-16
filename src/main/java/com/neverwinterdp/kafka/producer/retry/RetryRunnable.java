@@ -1,13 +1,11 @@
 package com.neverwinterdp.kafka.producer.retry;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import kafka.common.FailedToSendMessageException;
+import kafka.producer.ProducerClosedException;
 
 public abstract class RetryRunnable implements Runnable {
 
-  ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
   private RetryContext retryContext;
-  private boolean success;
   private Runnable runnable;
 
   public RetryRunnable(RetryContext retryContext, Runnable runnable) {
@@ -16,20 +14,23 @@ public abstract class RetryRunnable implements Runnable {
     this.runnable = runnable;
   }
 
-  void retry() {
-    if (retryContext.shouldRetry())
-      executorService.schedule(this, retryContext.getDelay(), retryContext.getTimeUnit());
-  }
-
   @Override
   public void run() {
-    try {
-      runnable.run();
-    } catch (Exception e) {
-      if (e instanceof NullPointerException) {
-        retry();
-      }
-    }
     // TODO run, getError, wait, runAgain until maxRetries exhausted
+    retryContext.reset();
+    do {
+      try {
+        runnable.run();
+        retryContext.setShouldRetry(false);
+      } catch (ProducerClosedException | FailedToSendMessageException ex) {
+        retryContext.setException(ex);
+        retryContext.incrementRetryCount();
+        try {
+          retryContext.await();
+        } catch (InterruptedException e) {
+          retryContext.setShouldRetry(false);
+        }
+      }
+    } while (retryContext.shouldRetry());
   }
 }

@@ -7,7 +7,7 @@ public interface Server {
   int getPort();
 
   void start() throws Exception;
-  
+
   void shutdown();
 
 }

@@ -23,7 +23,10 @@ import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
 // may not know the partition to read from
 // re-get brokers, retry write
-// Callers are responsible for ensuring that topic/partition exist and MessageGenerator is defined
+// Callers are responsible for ensuring that topic/partition exist and MessageGeneratoris defined
+// Think about using logger unnecesary
+// indentation
+// inner class Vs class in same file
 public class KafkaWriter implements Runnable, Closeable {
 
   private static final Logger logger = Logger.getLogger(KafkaWriter.class);
@@ -32,7 +35,7 @@ public class KafkaWriter implements Runnable, Closeable {
 
   private String topic;
   private int partition;
-  private String message;
+
   private MessageGenerator<String> messageGenerator;
   private Class<? extends Partitioner> partitionerClass;
   private ZookeeperHelper helper;
@@ -78,7 +81,7 @@ public class KafkaWriter implements Runnable, Closeable {
 
   @Override
   public void run() {
-    message = messageGenerator.next();
+    String message = messageGenerator.next();
     logger.info(Thread.currentThread().getName() + message);
     try {
       write(message);
@@ -88,7 +91,7 @@ public class KafkaWriter implements Runnable, Closeable {
   }
 
 
-  //TODO externalize the retry mechanism
+  // TODO externalize the retry mechanism
   public void write(String message) throws Exception {
     logger.info("writeToKafka.");
 
@@ -99,13 +102,8 @@ public class KafkaWriter implements Runnable, Closeable {
       key = message.substring(message.indexOf("PARTITION"));
     }
     logger.info("KEY: " + key);
-    KeyedMessage<String, String> data =
-        new KeyedMessage<String, String>(topic, key, message);
+    KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
     producer.send(data);
-  }
-
-  public String getMessage() {
-    return message;
   }
 
   public void setPartitionerClass(Class<? extends Partitioner> clazz) {
