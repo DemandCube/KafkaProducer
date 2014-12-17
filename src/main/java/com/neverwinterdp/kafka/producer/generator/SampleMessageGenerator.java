@@ -20,7 +20,6 @@ import com.neverwinterdp.kafka.producer.partitioners.SimplePartitioner;
  * */
 public class SampleMessageGenerator implements MessageGenerator<String> {
 
-  private static SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss:SSSS");
   private AtomicLong sequenceID;
   String message;
   Date now;
@@ -46,6 +45,7 @@ public class SampleMessageGenerator implements MessageGenerator<String> {
   @Override
   public String next() {
     now = new Date();
+    SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss:SSSS");
     message =
         "TOPIC:" + topic + ", PARTITION:" + partition + ", WriterID:" + writerId + ", SEQUENCE:"
             + sequenceID.incrementAndGet() + ", TIME:" + dateFormat.format(now);

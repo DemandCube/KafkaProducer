@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.consumer;
+package com.neverwinterdp.kafka.producer.consumer;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;

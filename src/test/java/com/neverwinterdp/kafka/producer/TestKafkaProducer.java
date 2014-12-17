@@ -14,7 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.neverwinterdp.kafka.consumer.KafkaReader;
+import com.neverwinterdp.kafka.producer.consumer.KafkaReader;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 import com.neverwinterdp.kafka.servers.KafkaCluster;

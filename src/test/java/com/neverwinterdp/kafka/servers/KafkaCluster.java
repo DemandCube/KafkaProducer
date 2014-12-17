@@ -20,7 +20,7 @@ public class KafkaCluster {
 
   public KafkaCluster(String serverDir, int numOfZkInstances, int numOfKafkaInstances) {
     this.serverDir = serverDir;
-    this.numOfKafkaInstances = numOfZkInstances;
+    this.numOfZkInstances = numOfZkInstances;
     this.numOfKafkaInstances = numOfKafkaInstances;
     zookeeperServers = new HashMap<String, Server>();
     kafkaServers = new HashMap<String, Server>();

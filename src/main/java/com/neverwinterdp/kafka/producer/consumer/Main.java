@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.consumer;
+package com.neverwinterdp.kafka.producer.consumer;
 
 public class Main {
   public static void main(String[] args) {

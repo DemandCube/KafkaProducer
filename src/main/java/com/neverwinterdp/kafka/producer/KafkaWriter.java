@@ -18,16 +18,14 @@ import org.apache.log4j.Logger;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableSet;
 import com.neverwinterdp.kafka.producer.generator.MessageGenerator;
+import com.neverwinterdp.kafka.producer.retry.RetryableRunnable;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 
 // may not know the partition to read from
 // re-get brokers, retry write
 // Callers are responsible for ensuring that topic/partition exist and MessageGeneratoris defined
-// Think about using logger unnecesary
-// indentation
-// inner class Vs class in same file
-public class KafkaWriter implements Runnable, Closeable {
+public class KafkaWriter implements RetryableRunnable, Closeable {
 
   private static final Logger logger = Logger.getLogger(KafkaWriter.class);
   private static final CharMatcher CHAR_MATCHER = CharMatcher.anyOf("[]");
@@ -90,7 +88,6 @@ public class KafkaWriter implements Runnable, Closeable {
   }
 
 
-  // TODO externalize the retry mechanism
   public void write(String message) throws Exception {
     logger.info("writeToKafka.");
 
@@ -113,5 +110,38 @@ public class KafkaWriter implements Runnable, Closeable {
   public void close() throws IOException {
     producer.close();
     helper.close();
+  }
+
+  @Override
+  public void beforeRetry() {
+    try {
+      reconnect();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void reconnect() throws Exception {
+    Collection<HostPort> brokers;
+    String brokerString;
+
+    brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
+    logger.info("SERVERS: " + brokerString);
+
+    Properties props = new Properties();
+    props.put("metadata.broker.list", brokerString);
+    props.put("serializer.class", "kafka.serializer.StringEncoder");
+    props.put("partitioner.class", partitionerClass.getName());
+    props.put("request.required.acks", "1");
+
+    ProducerConfig config = new ProducerConfig(props);
+    producer = new Producer<String, String>(config);
+
+  }
+
+  @Override
+  public void afterRetry() {
+
   }
 }

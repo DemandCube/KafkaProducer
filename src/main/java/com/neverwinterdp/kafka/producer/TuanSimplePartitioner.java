@@ -18,7 +18,7 @@ public class TuanSimplePartitioner implements Partitioner {
     if (offset > 0) {
       subKey = strKey.substring(offset + 1);
     }
-    partition = Math.abs(subKey.hashCode()) % a_numPartitions;
+    partition = Math.abs(subKey.hashCode() % a_numPartitions);
     // Or simple:
     // partition = Math.abs(strKey.hashCode()) % a_numPartitions;
     return partition;
