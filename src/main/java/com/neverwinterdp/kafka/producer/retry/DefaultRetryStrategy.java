@@ -9,6 +9,7 @@ import com.google.common.base.Predicate;
 // retry 5 times, with constant wait
 public class DefaultRetryStrategy implements RetryStrategy {
 
+
   private int maxRetries = 0;
   private int retries;
   private int waitDuration;
@@ -80,5 +81,10 @@ public class DefaultRetryStrategy implements RetryStrategy {
   public void setException(Exception exception) {
     this.exception = exception;
 
+  }
+
+  @Override
+  public int getRetries() {
+    return retries;
   }
 }

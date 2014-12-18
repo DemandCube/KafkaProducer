@@ -20,4 +20,6 @@ public interface RetryStrategy {
   int getRemainingTries();
 
   void setException(Exception nullPointerException);
+
+  int getRetries();
 }

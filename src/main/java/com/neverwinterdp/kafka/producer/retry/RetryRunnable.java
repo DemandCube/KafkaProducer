@@ -1,8 +1,11 @@
 package com.neverwinterdp.kafka.producer.retry;
 
-//TODO rename
+import org.apache.log4j.Logger;
+
+// TODO rename
 public class RetryRunnable implements Runnable {
 
+  private static final Logger logger = Logger.getLogger(RetryRunnable.class);
   private RetryStrategy retryStrategy;
   private RetryableRunnable runnable;
   private boolean isSuccess;
@@ -16,8 +19,6 @@ public class RetryRunnable implements Runnable {
 
   @Override
   public void run() {
-    // TODO run, getError, wait, runAgain until maxRetries exhausted
-    // throw retry exception if we retried many times but didn't succeed
     retryStrategy.reset();
     do {
       try {
@@ -25,6 +26,7 @@ public class RetryRunnable implements Runnable {
         isSuccess = true;
         retryStrategy.shouldRetry(false);
       } catch (Exception ex) {
+        logger.debug("We got an exception: " + ex.toString());
         retryStrategy.errorOccured(ex);
         if (retryStrategy.shouldRetry()) {
           try {
@@ -34,8 +36,8 @@ public class RetryRunnable implements Runnable {
             retryStrategy.shouldRetry(false);
           }
         } else {
-          // TODO proper message to user
-          throw new RetryException("retries " + retryStrategy.getRemainingTries() + " reason "
+          throw new RetryException("Runnable did not complete succesfully after "
+              + retryStrategy.getRetries() + ". Last Exception was "
               + ex.getCause());
         }
       }

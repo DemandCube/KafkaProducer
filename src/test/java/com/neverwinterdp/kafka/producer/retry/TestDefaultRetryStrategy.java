@@ -43,7 +43,7 @@ public class TestDefaultRetryStrategy {
   // should retry 5 times
   @Test
   public void testRetryMaxTimes() {
-    for (int i = 0; i < maxRetries; i++) {
+    for (int i = 1; i <= maxRetries; i++) {
       assertTrue(retryStrategy.shouldRetry());
       retryStrategy.errorOccured(new NullPointerException());
     }
