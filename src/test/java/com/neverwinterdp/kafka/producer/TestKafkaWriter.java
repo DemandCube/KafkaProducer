@@ -22,6 +22,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.neverwinterdp.kafka.producer.consumer.KafkaReader;
+import com.neverwinterdp.kafka.producer.writer.KafkaWriter;
 import com.neverwinterdp.kafka.servers.KafkaCluster;
 
 // Start a zookeeper and at least 2 kafka brokers before running these tests

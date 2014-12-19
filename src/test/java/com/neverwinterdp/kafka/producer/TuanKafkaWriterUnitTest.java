@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.neverwinterdp.kafka.producer.writer.KafkaWriter;
 import com.neverwinterdp.kafka.servers.KafkaCluster;
 import com.neverwinterdp.kafka.servers.Server;
 
@@ -82,7 +83,7 @@ public class TuanKafkaWriterUnitTest {
     @Override
     public void run() {
       try {
-        TuanKafkaWriter writer = new TuanKafkaWriter(name, cluster.getKafkaConnect());
+        KafkaWriter writer = new KafkaWriter(name, cluster.getKafkaConnect());
         while (true) {
           sentCount++;
           String hello = "Hello " + sentCount;

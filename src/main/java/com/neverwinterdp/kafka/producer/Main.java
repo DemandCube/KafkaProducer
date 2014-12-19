@@ -9,8 +9,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
+import com.neverwinterdp.kafka.producer.messagegenerator.KafkaInfoTimeStampGenerator;
 import com.neverwinterdp.kafka.producer.util.PropertyUtils;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
+import com.neverwinterdp.kafka.producer.writer.KafkaWriter;
 
 /**
  * The main class
@@ -18,26 +20,25 @@ import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
 public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class);
-  private int writers;
-  private long runPeriod;
-  private long delay;
-  private String zkURL;
-  private String topic;
-  private int partitions;
-  private int replicationFactor;
+  private static int writers;
+  private static long runPeriod;
+  private static long delay;
+  private static String zkURL;
+  private static String topic;
+  private static int partitions;
+  private static int replicationFactor;
 
   public static void main(String[] args) throws Exception {
     BasicConfigurator.configure();
-    Main dataGenerator = new Main();
-    dataGenerator.init();
+    init();
     try {
-      dataGenerator.generate();
+      generate();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  private void init() throws Exception {
+  private static void init() throws Exception {
     logger.info("init. ");
     Properties props = PropertyUtils.getPropertyFile("kafkaproducer.properties");
     writers = Integer.parseInt(props.getProperty("writers"));
@@ -54,13 +55,16 @@ public class Main {
   }
 
   // assign partitions to writers in round robin
-  private void generate() throws Exception {
+  private static void generate() throws Exception {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
-    KafkaWriter writer;
+    
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, i % partitions, i);
+      KafkaWriterRunnable sched = new KafkaWriterRunnable( 
+                                    new KafkaWriter("writer"+Integer.toString(i), zkURL, topic), 
+                                    new KafkaInfoTimeStampGenerator(topic, "writer"+Integer.toString(i))
+                                  );
       final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
+          scheduler.scheduleAtFixedRate(sched, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {

@@ -1,4 +1,5 @@
-package com.neverwinterdp.kafka.producer.generator;
+package com.neverwinterdp.kafka.producer.messagegenerator;
+/*package com.neverwinterdp.kafka.producer.generator;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -11,13 +12,13 @@ import com.neverwinterdp.kafka.producer.partitioners.SimplePartitioner;
 // TOPIC:3fdd6c2047c4e61e, PARTITION:0, WriterID:1, SEQUENCE:100, TIME:10:04:49:0174
 // PARTITION:0, WriterID:1, SEQUENCE:100
 
-/**
+*//**
  * A message producer for the kafka writer. Alternate implementations of this class will have a
  * blocking queue that calls to next() poll. This will allow assynchronous producers of data to put
  * in to the blocking queue as well.
  * 
  * Note that a message generator is responsible for defining its partitioner
- * */
+ * *//*
 public class SampleMessageGenerator implements MessageGenerator<String> {
 
   private AtomicLong sequenceID;
@@ -67,3 +68,4 @@ public class SampleMessageGenerator implements MessageGenerator<String> {
     this.partitionerClass = partitionerClass;
   }
 }
+*/

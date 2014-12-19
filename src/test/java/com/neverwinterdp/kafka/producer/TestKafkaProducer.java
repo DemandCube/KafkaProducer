@@ -15,8 +15,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.neverwinterdp.kafka.producer.consumer.KafkaReader;
+import com.neverwinterdp.kafka.producer.messagegenerator.KafkaInfoTimeStampGenerator;
 import com.neverwinterdp.kafka.producer.util.HostPort;
 import com.neverwinterdp.kafka.producer.util.ZookeeperHelper;
+import com.neverwinterdp.kafka.producer.writer.KafkaWriter;
 import com.neverwinterdp.kafka.servers.KafkaCluster;
 import com.neverwinterdp.kafka.servers.Server;
 
@@ -57,9 +59,13 @@ public class TestKafkaProducer {
     int runDuration = 30;
     // 6 writers, writing every 5 seconds for 30 seconds
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, partition, i);
+      //writer = new KafkaWriter(zkURL, topic, partition, i);
+      KafkaWriterRunnable sched = new KafkaWriterRunnable( 
+          new KafkaWriter("writer"+Integer.toString(i), zkURL, topic), 
+          new KafkaInfoTimeStampGenerator(topic, "writer"+Integer.toString(i))
+        );
       final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
+          scheduler.scheduleAtFixedRate(sched, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {
