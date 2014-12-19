@@ -66,9 +66,17 @@ public class KafkaWriter {
     producer = new Producer<String, String>(config);
   }
 
-  public void send(String data) throws Exception {
+  public void send(String topic, String data) throws Exception {
     String key = name + idTracker.getAndIncrement();
     producer.send(new KeyedMessage<String, String>(topic, key, data));
+  }
+  
+  public void send(String data) throws Exception {
+    if(this.topic == null){
+      //if topic hasn't been set and we're calling this method, kill everything
+      throw new IllegalStateException();
+    }
+    this.send(this.topic, data);
   }
 
   public void send(List<String> dataHolder) throws Exception{

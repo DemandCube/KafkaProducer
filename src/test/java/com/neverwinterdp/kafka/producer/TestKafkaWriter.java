@@ -22,6 +22,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.neverwinterdp.kafka.producer.consumer.KafkaReader;
+import com.neverwinterdp.kafka.producer.messagegenerator.KafkaInfoTimeStampGenerator;
 import com.neverwinterdp.kafka.producer.writer.KafkaWriter;
 import com.neverwinterdp.kafka.servers.KafkaCluster;
 
@@ -54,7 +55,7 @@ public class TestKafkaWriter {
     scheduler = Executors.newScheduledThreadPool(writers);
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     buffer = new LinkedList<>();
-    writer = new KafkaWriter(zkURL, topic, partition, id);
+    writer = new KafkaWriter("writer"+Integer.toString(id), zkURL, topic); 
     reader = new KafkaReader(zkURL, topic, partition);
   }
 
@@ -65,10 +66,10 @@ public class TestKafkaWriter {
   public void testWriteToNonExistentTopic() throws Exception {
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     partition = new Random().nextInt(1);
-    writer = new KafkaWriter(zkURL, topic, partition, id);
+    writer = new KafkaWriter("writer"+Integer.toString(id), zkURL, topic);
     try {
       for (int i = 0; i < 100; i++) {
-        writer.run();
+        writer.send(Integer.toString(i));
       }
       assertTrue("Can write to auto created topic", true);
     } catch (Exception e) {
@@ -78,14 +79,15 @@ public class TestKafkaWriter {
 
   /**
    * Write 200 messages to kafka, count number of messages read. They should be equal
+   * @throws Exception 
    * 
    * */
   @Test
-  public void testCountMessages() {
+  public void testCountMessages() throws Exception {
     List<String> messages = new ArrayList<>();
     int count = 200;
     for (int i = 0; i < count; i++) {
-      writer.run();
+      writer.send(Integer.toString(i));
     }
     while (reader.hasNext()) {
       messages.addAll(reader.read());
@@ -101,7 +103,7 @@ public class TestKafkaWriter {
     int count = 20;
     String randomMessage = UUID.randomUUID().toString();
     for (int i = 0; i < count; i++) {
-      writer.write(randomMessage);
+      writer.send(randomMessage);
       buffer.add(randomMessage);
     }
     while (reader.hasNext()) {
@@ -123,9 +125,13 @@ public class TestKafkaWriter {
     int runDuration = 30;
 
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, partition, i);
+      KafkaWriterRunnable sched = new KafkaWriterRunnable( 
+          new KafkaWriter("writer"+Integer.toString(i), zkURL, topic), 
+          new KafkaInfoTimeStampGenerator(topic, "writer"+Integer.toString(i))
+        );
+      
       final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
+          scheduler.scheduleAtFixedRate(sched, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {
@@ -149,9 +155,9 @@ public class TestKafkaWriter {
   public void testWriteToCorrectPartition() throws Exception {
     // create new topic, create writer to partition0, write, read from partition1 get exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
-    writer = new KafkaWriter(zkURL, topic, 0, 1);
+    writer = new KafkaWriter("writer"+Integer.toString(id), zkURL, topic);
     for (int i = 0; i < 100; i++) {
-      writer.run();
+      writer.send(Integer.toString(i));
     }
     reader = new KafkaReader(zkURL, topic, 1);
     assertTrue(reader.read().size() == 0);
@@ -164,9 +170,9 @@ public class TestKafkaWriter {
   public void testReadFromNonExistentPartition() throws Exception {
     // create new topic, create writer to partition0, write, read from partition1 get exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
-    writer = new KafkaWriter(zkURL, topic, 0, 1);
+    writer = new KafkaWriter("writer"+Integer.toString(id), zkURL, topic);
     for (int i = 0; i < 100; i++) {
-      writer.run();
+      writer.send(Integer.toString(i));
     }
     reader = new KafkaReader(zkURL, topic, 5);
 
@@ -178,9 +184,9 @@ public class TestKafkaWriter {
   public void testWriteToWrongPartition() throws Exception {
     // create new topic, create writer to partition7, expect exception
     topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
-    writer = new KafkaWriter(zkURL, topic, 20, 1);
+    writer = new KafkaWriter("writer"+Integer.toString(id), zkURL, topic);
     for (int i = 0; i < 100; i++) {
-      writer.write(UUID.randomUUID().toString());
+      writer.send(UUID.randomUUID().toString());
     }
   }
 
