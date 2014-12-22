@@ -1,6 +1,6 @@
 package com.neverwinterdp.kafka.producer;
 
-import static com.neverwinterdp.kafka.producer.util.Utils.printRunningThreads;
+import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -11,8 +11,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.neverwinterdp.kafka.servers.KafkaCluster;
-import com.neverwinterdp.kafka.servers.Server;
+import com.neverwinterdp.kafkaproducer.servers.KafkaCluster;
+import com.neverwinterdp.kafkaproducer.servers.Server;
+import com.neverwinterdp.kafkaproducer.writer.TuanKafkaWriter;
 
 public class TuanKafkaWriterUnitTest {
   static {
@@ -94,6 +95,5 @@ public class TuanKafkaWriterUnitTest {
         ex.printStackTrace();
       }
     }
-
   }
 }
