@@ -1,6 +1,5 @@
 package com.neverwinterdp.kafkaproducer.writer;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Closeable;
@@ -18,6 +17,8 @@ import org.apache.log4j.Logger;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableSet;
 import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
+import com.neverwinterdp.kafkaproducer.messagegenerator.SampleMessageGenerator;
+import com.neverwinterdp.kafkaproducer.partitioners.SimplePartitioner;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
@@ -43,7 +44,9 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     this.partition = checkNotNull(partition);
 
     helper = new ZookeeperHelper(zkURL);
-    checkArgument(helper.getBrokersForTopicAndPartition(topic, 0).size() != 0);
+    messageGenerator = new SampleMessageGenerator(topic, partition, id);
+    partitionerClass = messageGenerator.getPartitionerClass();
+    // checkArgument(helper.getBrokersForTopicAndPartition(topic, 0).size() != 0);
     init();
   }
 
@@ -62,7 +65,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     Properties props = new Properties();
     props.put("metadata.broker.list", brokerString);
     props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", partitionerClass.getName());
+    props.put("partitioner.class", SimplePartitioner.class.getName());
     props.put("request.required.acks", "1");
 
     ProducerConfig config = new ProducerConfig(props);

@@ -14,6 +14,12 @@ public class HostPort {
     this.port = port;
   }
 
+  public HostPort(String zkConnect) {
+    String[] parts= zkConnect.split(":");
+    this.host= parts[0];
+    this.port= Integer.parseInt(parts[1]);    
+  }
+
   public String getHost() {
     return host;
   }
