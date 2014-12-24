@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafka.producer;
+package com.neverwinterdp.kafkaproducer.writer;
 
 import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 

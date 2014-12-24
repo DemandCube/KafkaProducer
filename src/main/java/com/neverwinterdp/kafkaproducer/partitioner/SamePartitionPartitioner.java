@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.partitioners;
+package com.neverwinterdp.kafkaproducer.partitioner;
 
 // ukipika unafanya hilton ikae kama kibanda
 import kafka.producer.Partitioner;

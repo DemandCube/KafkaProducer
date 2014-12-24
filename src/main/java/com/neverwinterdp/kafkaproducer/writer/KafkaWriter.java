@@ -12,13 +12,10 @@ import kafka.producer.KeyedMessage;
 import kafka.producer.Partitioner;
 import kafka.producer.ProducerConfig;
 
-import org.apache.log4j.Logger;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableSet;
 import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
 import com.neverwinterdp.kafkaproducer.messagegenerator.SampleMessageGenerator;
-import com.neverwinterdp.kafkaproducer.partitioners.SimplePartitioner;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
@@ -28,7 +25,7 @@ import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 // Callers are responsible for ensuring that topic/partition exist and MessageGeneratoris defined
 public class KafkaWriter implements RetryableRunnable, Closeable {
 
-  private static final Logger logger = Logger.getLogger(KafkaWriter.class);
+ // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
   private static final CharMatcher CHAR_MATCHER = CharMatcher.anyOf("[]");
   private Producer<String, String> producer;
 
@@ -39,14 +36,16 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private ZookeeperHelper helper;
 
   public KafkaWriter(String zkURL, String topic, int partition, int id) throws Exception {
+  
     checkNotNull(zkURL);
     this.topic = checkNotNull(topic);
     this.partition = checkNotNull(partition);
 
     helper = new ZookeeperHelper(zkURL);
+    // TODO what to do here?
     messageGenerator = new SampleMessageGenerator(topic, partition, id);
-    partitionerClass = messageGenerator.getPartitionerClass();
-    // checkArgument(helper.getBrokersForTopicAndPartition(topic, 0).size() != 0);
+    partitionerClass = kafka.producer.DefaultPartitioner.class;
+  //  checkArgument(helper.getBrokersForTopicAndPartition(topic, partition).size() != 0);
     init();
   }
 
@@ -60,12 +59,12 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
     brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
     brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
-    logger.info("SERVERS: " + brokerString);
+    
 
     Properties props = new Properties();
     props.put("metadata.broker.list", brokerString);
     props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", SimplePartitioner.class.getName());
+    props.put("partitioner.class", partitionerClass.getName());
     props.put("request.required.acks", "1");
 
     ProducerConfig config = new ProducerConfig(props);
@@ -82,25 +81,23 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   @Override
   public void run() {
     String message = messageGenerator.next();
-    logger.info(Thread.currentThread().getName() + message);
     try {
       write(message);
     } catch (Exception e) {
-      logger.error(e.getMessage());
-    }
+   }
   }
 
 
   public void write(String message) throws Exception {
-    logger.info("writeToKafka.");
-
-    String key;
-    if (partition != -1) {// We already know the partition we want
-      key = Integer.toString(partition);
-    } else {
-      key = message.substring(message.indexOf("PARTITION"));
-    }
-    logger.info("KEY: " + key);
+    // TODO what to do here
+    String key = Integer.toString(partition);;
+    /*
+     * if (partition != -1) {// We already know the partition we want
+     * key = Integer.toString(partition);
+     * } else {
+     * key = message.substring(message.indexOf("PARTITION"));
+     * }
+     */
     KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
     producer.send(data);
   }
@@ -130,8 +127,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
     brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
     brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
-    logger.info("SERVERS: " + brokerString);
-
+  
     Properties props = new Properties();
     props.put("metadata.broker.list", brokerString);
     props.put("serializer.class", "kafka.serializer.StringEncoder");

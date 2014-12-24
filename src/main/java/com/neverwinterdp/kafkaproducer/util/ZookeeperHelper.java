@@ -96,9 +96,11 @@ public class ZookeeperHelper implements Closeable {
 
   }
 
-  /* /brokers/[0...N] --> { "host" : "host:port",
-                            "topics" : {"topic1": ["partition1" ... "partitionN"], ...,
-                                        "topicN": ["partition1" ... "partitionN"] } }*/
+  /*
+   * /brokers/[0...N] --> { "host" : "host:port",
+   * "topics" : {"topic1": ["partition1" ... "partitionN"], ...,
+   * "topicN": ["partition1" ... "partitionN"] } }
+   */
   public Collection<HostPort> getBrokersForTopicAndPartition(String topic, int partition)
       throws Exception {
     PartitionState partitionState = getPartitionState(topic, partition);
@@ -136,7 +138,7 @@ public class ZookeeperHelper implements Closeable {
   }
 
   public int writeData(String path, byte[] data) throws Exception {
-    //TODO exit if data is not a json obj
+    // TODO exit if data is not a json obj
     logger.info("writeData. path: " + path + " data: " + Arrays.toString(data));
     if (zkClient.checkExists().forPath(path) == null) {
 
@@ -190,18 +192,18 @@ public class ZookeeperHelper implements Closeable {
       logger.error(nne.getMessage());
       return new PartitionState();
     }
-    byte[] bytes = 
+    byte[] bytes =
         zkClient.getData().forPath(topicInfoLocation + topic + "/partitions/" + partion + "/state");
     PartitionState partitionState = Utils.toClass(bytes, PartitionState.class);
     return partitionState;
   }
 
   /**
-  * @param topic
-  * @param partion
-  * @return
-  * @throws Exception
-  */
+   * @param topic
+   * @param partion
+   * @return
+   * @throws Exception
+   */
   private Topic getTopicInfo(String topic)
       throws Exception {
     try {
@@ -232,7 +234,7 @@ public class ZookeeperHelper implements Closeable {
     this.topicInfoLocation = topicInfoLocation;
   }
 
-  //write to 
+  // write to
   public void updateProgress(String path, byte[] data) throws Exception {
     writeData(path, data);
   }
@@ -264,17 +266,18 @@ public class ZookeeperHelper implements Closeable {
     }
   }
 
-  /*  //Listener for node changes
-    public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
-      // in this example we will cache data. Notice that this is optional.
-      logger.info("setTopicNodeListener. ");
-      pathChildrenCache =
-          new PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(),
-              true);
-      pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
-
-      pathChildrenCache.getListenable().addListener(topicNodeListener);
-    }*/
+  /*
+   * //Listener for node changes
+   * public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
+   * // in this example we will cache data. Notice that this is optional.
+   * logger.info("setTopicNodeListener. ");
+   * pathChildrenCache =
+   * new PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(),
+   * true);
+   * pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
+   * pathChildrenCache.getListenable().addListener(topicNodeListener);
+   * }
+   */
 
   @Override
   public void close() throws IOException {
@@ -285,7 +288,7 @@ public class ZookeeperHelper implements Closeable {
 
   public void addPartitions(String topic, int partitions) {
     ZkClient client = new ZkClient(zkConnectString, 10000, 10000, ZKStringSerializer$.MODULE$);
-    AdminUtils.addPartitions(client, topic, partitions, "");
+    AdminUtils.addPartitions(client, topic, partitions, "", false, new Properties());
     client.close();
   }
 
@@ -296,7 +299,7 @@ public class ZookeeperHelper implements Closeable {
     try {
       Thread.sleep(3000);
     } catch (InterruptedException e) {
-    //Hack
+      // Hack
     }
     client.close();
   }

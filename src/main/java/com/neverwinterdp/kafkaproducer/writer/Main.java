@@ -14,7 +14,7 @@ import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
 /**
  * The main class
- * */
+ */
 public class Main {
 
   private static final Logger logger = Logger.getLogger(Main.class);
@@ -53,9 +53,9 @@ public class Main {
     }
   }
 
-  // assign partitions to writers in round robin
   private void generate() throws Exception {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
+    // TODO wrap in retry runnable
     KafkaWriter writer;
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter(zkURL, topic, i % partitions, i);

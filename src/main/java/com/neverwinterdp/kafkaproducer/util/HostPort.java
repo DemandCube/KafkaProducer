@@ -15,9 +15,9 @@ public class HostPort {
   }
 
   public HostPort(String zkConnect) {
-    String[] parts= zkConnect.split(":");
-    this.host= parts[0];
-    this.port= Integer.parseInt(parts[1]);    
+    String[] parts = zkConnect.split(":");
+    this.host = parts[0];
+    this.port = Integer.parseInt(parts[1]);
   }
 
   public String getHost() {
@@ -29,10 +29,6 @@ public class HostPort {
   }
 
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(host);
-    sb.append(":");
-    sb.append(port);
-    return sb.toString();
+    return host + ":" + port;
   }
 }

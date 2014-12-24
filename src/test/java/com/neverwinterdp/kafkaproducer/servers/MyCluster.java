@@ -1,8 +1,9 @@
 package com.neverwinterdp.kafkaproducer.servers;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -12,11 +13,9 @@ import kafka.utils.MockTime;
 import kafka.utils.TestUtils;
 import kafka.utils.TestZKUtils;
 import kafka.utils.Time;
-import kafka.utils.ZKStringSerializer$;
 import kafka.zk.EmbeddedZookeeper;
 
 import org.I0Itec.zkclient.ZkClient;
-import org.apache.log4j.BasicConfigurator;
 
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 
@@ -24,19 +23,19 @@ public class MyCluster {
 
   private int numOfZkInstances;
   private int numOfKafkaInstances;
+  ZkClient zkClient;
   private Set<HostPort> zkHosts;
   private Set<HostPort> kafkaHosts;
 
-
-  private HashMap<String, EmbeddedZookeeper> zookeeperServers;
-  private HashMap<String, KafkaServer> kafkaServers;
-
+  private List<EmbeddedZookeeper> zookeeperServers;
+  private List<KafkaServer> kafkaServers;
 
   public MyCluster(int numOfZkInstances, int numOfKafkaInstances) {
     this.numOfZkInstances = numOfZkInstances;
     this.numOfKafkaInstances = numOfKafkaInstances;
-    zookeeperServers = new HashMap<>();
-    kafkaServers = new HashMap<>();
+
+    zookeeperServers = new ArrayList<>();
+    kafkaServers = new ArrayList<>();
 
     zkHosts = new HashSet<>();
     kafkaHosts = new HashSet<>();
@@ -49,12 +48,9 @@ public class MyCluster {
       zkHosts.add(new HostPort(zkConnect));
       System.out.println(zkConnect);
       EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
-      ZkClient zkClient =
-          new ZkClient(zkServer.connectString(), 30000, 30000, ZKStringSerializer$.MODULE$);
-      zkClient.hashCode();
-      zookeeperServers.put(zkConnect, zkServer);
+      zookeeperServers.add(zkServer);
+      zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
     }
-
 
     for (int i = 0; i < numOfKafkaInstances; i++) {
       // setup Broker
@@ -65,32 +61,33 @@ public class MyCluster {
       Time mock = new MockTime();
       KafkaServer kafkaServer = TestUtils.createServer(config, mock);
       kafkaHosts.add(new HostPort("127.0.0.1", port));
-      kafkaServers.put(config.toString(), kafkaServer);
+      kafkaServers.add(kafkaServer);
     }
+    System.out.println("Cluster created");
   }
 
   public void shutdown() {
-    for (KafkaServer server : kafkaServers.values()) {
+    zkClient.close();
+    for (KafkaServer server : kafkaServers) {
       server.shutdown();
     }
 
-    for (EmbeddedZookeeper server : zookeeperServers.values()) {
+    for (EmbeddedZookeeper server : zookeeperServers) {
       server.shutdown();
     }
-  }
-
-  public static void main(String[] args) {
-    BasicConfigurator.configure();
-    MyCluster cluster = new MyCluster(1, 3);
     try {
-      cluster.start();
-    } catch (Exception e) {
-      e.printStackTrace();
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
+      // ignore
     }
   }
 
   public Collection<KafkaServer> getKafkaServers() {
-    return kafkaServers.values();
+    return kafkaServers;
+  }
+
+  public Collection<EmbeddedZookeeper> getZookeeperServers() {
+    return zookeeperServers;
   }
 
   public Set<HostPort> getZkHosts() {
@@ -99,5 +96,11 @@ public class MyCluster {
 
   public Set<HostPort> getKafkaHosts() {
     return kafkaHosts;
+  }
+
+  // TODO get connectionString off all Zk's
+  // 127.0.0.1:2181, 127.0.0.1:2182
+  public String getZkURL() {
+    return zookeeperServers.get(0).connectString();
   }
 }

@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer;
+package com.neverwinterdp.kafkaproducer.util;
 
 
 public class BytesEncoder implements kafka.serializer.Encoder<byte[]> {

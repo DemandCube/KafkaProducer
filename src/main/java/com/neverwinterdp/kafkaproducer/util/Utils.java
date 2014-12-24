@@ -22,7 +22,6 @@ public class Utils {
    * Convert a byte array containing a JSON string to a map of key/value pairs.
    * 
    * @param data byte array containing the key/value pair string
-   * 
    * @return a new map containing the key/value pairs
    */
   public static Map<String, String> toMap(byte[] data) {

@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.neverwinterdp.kafkaproducer.partitioners.TuanSimplePartitioner;
+import com.neverwinterdp.kafkaproducer.partitioner.TuanSimplePartitioner;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;

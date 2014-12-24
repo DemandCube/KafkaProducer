@@ -1,10 +1,7 @@
 package com.neverwinterdp.kafkaproducer.consumer;
 
-import static org.junit.Assert.fail;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestKafkaReader {
@@ -12,13 +9,13 @@ public class TestKafkaReader {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {}
 
-  @AfterClass
-  public static void tearDownAfterClass() throws Exception {}
+  @Test
+  public void testReadFromCorrectPartition() throws Exception {}
 
   @Test
-  @Ignore
-  public void test() {
-    fail("Not yet implemented");
-  }
+  public void testReadFromNonExistentPartition() throws Exception {}
+
+  @AfterClass
+  public static void tearDownAfterClass() throws Exception {}
 
 }

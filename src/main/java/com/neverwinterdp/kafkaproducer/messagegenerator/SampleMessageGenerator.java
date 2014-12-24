@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.producer.Partitioner;
 
-import com.neverwinterdp.kafkaproducer.partitioners.SimplePartitioner;
+import com.neverwinterdp.kafkaproducer.partitioner.SimplePartitioner;
 
 // TOPIC:3fdd6c2047c4e61e, PARTITION:0, WriterID:1, SEQUENCE:100, TIME:10:04:49:0174
 // PARTITION:0, WriterID:1, SEQUENCE:100
