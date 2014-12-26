@@ -2,15 +2,14 @@ package com.neverwinterdp.kafkaproducer.retry;
 
 import org.apache.log4j.Logger;
 
-// TODO rename
-public class RetryRunnable implements Runnable {
+public class RunnableRetryer implements Runnable {
 
-  private static final Logger logger = Logger.getLogger(RetryRunnable.class);
+  private static final Logger logger = Logger.getLogger(RunnableRetryer.class);
   private RetryStrategy retryStrategy;
   private RetryableRunnable runnable;
   private boolean isSuccess;
 
-  public RetryRunnable(RetryStrategy retryStrategy, RetryableRunnable runnable) {
+  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable runnable) {
     super();
     this.retryStrategy = retryStrategy;
     this.runnable = runnable;

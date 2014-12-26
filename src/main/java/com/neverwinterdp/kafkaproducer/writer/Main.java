@@ -58,7 +58,7 @@ public class Main {
     // TODO wrap in retry runnable
     KafkaWriter writer;
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, i % partitions, i);
+      writer = new KafkaWriter.Builder(zkURL, topic).partition(i % partitions).build();
       final ScheduledFuture<?> timeHandle =
           scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 

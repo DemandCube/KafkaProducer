@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.reader;
+package com.neverwinterdp.kafkaproducer.util;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -21,9 +21,9 @@ import org.apache.log4j.Logger;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-public class MyConsumer implements AutoCloseable {
+public class Consumer implements AutoCloseable {
 
-  private static final Logger logger = Logger.getLogger(MyConsumer.class);
+  private static final Logger logger = Logger.getLogger(Consumer.class);
   private static final int BUFFER_SIZE = 64 * 1024;
   private static final int TIMEOUT = 10000;
   List<String> messages;
@@ -35,12 +35,12 @@ public class MyConsumer implements AutoCloseable {
   private boolean hasNextOffset;
 
 
-  public MyConsumer(String zkURL, String topic, int partition) {
+  public Consumer(String zkURL, String topic, int partition) {
     super();
     this.zkURL = zkURL;
     this.topic = topic;
     this.partition = partition;
-    messages = new LinkedList<>();
+    messages = new LinkedList<String>();
     try {
       initialize();
     } catch (Exception e) {
@@ -85,7 +85,6 @@ public class MyConsumer implements AutoCloseable {
         bytes = new byte[payload.limit()];
         payload.get(bytes);
         messages.add(new String(bytes));
-        System.out.println("read "+ new String(bytes));
         logger.info("current offset " + currentOffset + " " + messageAndOffset.offset() + ": "
             + new String(bytes));
         nextOffset = messageAndOffset.nextOffset();

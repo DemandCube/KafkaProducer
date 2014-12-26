@@ -9,13 +9,13 @@ import com.google.common.base.Predicate;
 // retry 5 times, with constant wait
 public class DefaultRetryStrategy implements RetryStrategy {
 
-
   private int maxRetries = 0;
   private int retries;
   private int waitDuration;
   private Predicate<? super Exception> exceptionPredicate;
   private Exception exception;
 
+  //TODO retry on more than 1 type of exception
   public DefaultRetryStrategy(int maxRetries, int waitDuration,
       Class<? extends Exception> retryableException) {
     super();
@@ -51,8 +51,6 @@ public class DefaultRetryStrategy implements RetryStrategy {
   }
 
   @Override
-  // TODO remove this method
-  @Deprecated
   public void shouldRetry(boolean shouldRetry) {
     if (shouldRetry) {
       retries = maxRetries - 1;

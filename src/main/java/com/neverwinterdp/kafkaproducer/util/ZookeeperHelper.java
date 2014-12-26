@@ -31,19 +31,18 @@ import com.google.common.collect.Multimap;
 
 // TODO get the names right
 // TODO tests
-// TODO soround in retry block
+// TODO sorround in retry block
 public class ZookeeperHelper implements Closeable {
 
-  private String zkConnectString;
+  private static final Logger logger = Logger.getLogger(ZookeeperHelper.class);
   private final static RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
 
-  private CuratorFramework zkClient;
-  private PathChildrenCache pathChildrenCache;
-
-  private static final Logger logger = Logger
-      .getLogger(ZookeeperHelper.class);
   private String brokerInfoLocation = "/brokers/ids/";
   private String topicInfoLocation = "/brokers/topics/";
+
+  private String zkConnectString;
+  private CuratorFramework zkClient;
+  private PathChildrenCache pathChildrenCache;
 
   public ZookeeperHelper(String zookeeperURL) throws InterruptedException {
     super();
@@ -60,21 +59,19 @@ public class ZookeeperHelper implements Closeable {
 
   public HostPort getLeaderForTopicAndPartition(String topic, int partition) throws Exception {
 
-    String[] values = getLeader(topic, partition).split(
-        ":");
+    String[] values = getLeader(topic, partition).split(":");
     if (values.length == 2)
       return new HostPort(values[0], values[1]);
     else
       return null;
   }
 
-  private String getLeader(String topic, int partition)
-      throws Exception {
+  private String getLeader(String topic, int partition) throws Exception {
     String leader = "";
 
     PartitionState partitionState = getPartitionState(topic, partition);
     int leaderId = partitionState.getLeader();
-    byte[] bytes = {};
+    byte[] bytes;
 
     try {
       if (leaderId == -1) {
@@ -82,18 +79,14 @@ public class ZookeeperHelper implements Closeable {
       }
       logger.debug("Going to look for " + brokerInfoLocation + leaderId);
       bytes = zkClient.getData().forPath(brokerInfoLocation + leaderId);
-    }
-
-    catch (NoNodeException nne) {
+    } catch (NoNodeException nne) {
       logger.error(nne.getMessage(), nne);
       return leader;
     }
     Broker part = Utils.toClass(bytes, Broker.class);
     logger.debug("leader " + part);
 
-    return leader.concat(part.getHost()).concat(":")
-        .concat(String.valueOf(part.getPort()));
-
+    return leader.concat(part.getHost()).concat(":").concat(String.valueOf(part.getPort()));
   }
 
   /*
@@ -104,13 +97,13 @@ public class ZookeeperHelper implements Closeable {
   public Collection<HostPort> getBrokersForTopicAndPartition(String topic, int partition)
       throws Exception {
     PartitionState partitionState = getPartitionState(topic, partition);
-    Collection<HostPort> brokers = new LinkedList<>();
+    Collection<HostPort> brokers = new LinkedList<HostPort>();
     HostPort broker;
     byte[] partitions;
     logger.debug("PartitionState " + partitionState);
 
     for (Integer b : partitionState.getIsr()) {
-      // TODO broker is registered but offline next line throws
+      // if broker is registered but offline next line throws
       // nonodeexception
       try {
         partitions = zkClient.getData().forPath(brokerInfoLocation + b);
@@ -125,7 +118,6 @@ public class ZookeeperHelper implements Closeable {
   }
 
   public Map<String, String> getData(String path) throws Exception {
-    System.err.println("getData. path: " + path);
     if (zkClient.checkExists().forPath(path) == null) {
       return Collections.emptyMap();
     }
@@ -167,10 +159,15 @@ public class ZookeeperHelper implements Closeable {
     HostPort hostPort;
     for (Entry<String, Set<Integer>> topicPartition : topik.partitions.entrySet()) {
       for (Integer replicaID : topicPartition.getValue()) {
-        byte[] partitions = zkClient.getData().forPath(brokerInfoLocation + replicaID);
-        Broker part = Utils.toClass(partitions, Broker.class);
-        hostPort = new HostPort(part.getHost(), part.getPort());
-        brokers.put(Integer.parseInt(topicPartition.getKey()), hostPort);
+        // if broker is registered but offline next line throws nonodeexception
+        try {
+          byte[] partitions = zkClient.getData().forPath(brokerInfoLocation + replicaID);
+          Broker part = Utils.toClass(partitions, Broker.class);
+          hostPort = new HostPort(part.getHost(), part.getPort());
+          brokers.put(Integer.parseInt(topicPartition.getKey()), hostPort);
+        } catch (NoNodeException nne) {
+          logger.debug(nne.getMessage());
+        }
       }
     }
     logger.info("Broker.size " + brokers.size());

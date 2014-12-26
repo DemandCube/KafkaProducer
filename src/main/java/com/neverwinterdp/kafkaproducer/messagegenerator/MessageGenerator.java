@@ -7,7 +7,7 @@ import kafka.producer.Partitioner;
 /**
  * A source of messages for a KafkaWriter.
  * It optionally contains a partitioner that instructs kafka how to distribute
- * the messages to the various partitions
+ * the messages to the various partitions.
  */
 public interface MessageGenerator<T> extends Iterator<T> {
 
@@ -15,4 +15,5 @@ public interface MessageGenerator<T> extends Iterator<T> {
 
   void setPartitionerClass(Class<? extends Partitioner> partitionerClass);
 
+  public void remove();
 }

@@ -6,14 +6,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import kafka.common.FailedToSendMessageException;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -22,7 +26,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.neverwinterdp.kafkaproducer.servers.MyCluster;
+import com.neverwinterdp.kafkaproducer.messagegenerator.IntegerGenerator;
+import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
@@ -33,22 +38,21 @@ public class TestKafkaWriter {
 
   private static final Logger logger = Logger.getLogger(TestKafkaWriter.class);
   private static String zkURL;
-  private static MyCluster cluster;
+  private static EmbeddedCluster cluster;
   private static ZookeeperHelper helper;
 
-  private LinkedList<String> buffer;
+
   private KafkaWriter writer;
-  private int id = 1;
   private String topic;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     printRunningThreads();
     // one zk, 3 kafkas
-    cluster = new MyCluster(1, 3);
+    cluster = new EmbeddedCluster(1, 3);
     cluster.start();
     zkURL = cluster.getZkURL();
-    helper = new com.neverwinterdp.kafkaproducer.util.ZookeeperHelper(zkURL);
+    helper = new ZookeeperHelper(zkURL);
     Thread.sleep(3000);
   }
 
@@ -56,16 +60,14 @@ public class TestKafkaWriter {
   public void setUp() throws Exception {
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
-    buffer = new LinkedList<>();
-    writer = new KafkaWriter(zkURL, topic, 0, id);
+
+    writer = new KafkaWriter.Builder(zkURL, topic).build();
   }
 
   @Test
   public void testWriteToPartitionZero() {
     logger.info("testWriteToPartitionZero. ");
-    int id = 0;
     try {
-      writer = new KafkaWriter(zkURL, topic, 0, id);
       for (int i = 0; i < 100; i++) {
         writer.write("my message");
       }
@@ -78,11 +80,9 @@ public class TestKafkaWriter {
   @Test
   public void testWriteToPartitionOne() {
     logger.info("testWriteToPartitionOne. ");
-    int id = 0;
-
     helper.addPartitions(topic, 2);
     try {
-      writer = new KafkaWriter(zkURL, topic, 1, id);
+      writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
       for (int i = 0; i < 100; i++) {
         writer.write("my message");
       }
@@ -96,12 +96,11 @@ public class TestKafkaWriter {
    */
   @Test
   public void testWriteMessageOrder() throws Exception {
-    // TODO discuss with team how to handle multiple partitions.
-    // currently this test passes for a 1 partition topic
     int count = 20;
     String randomMessage = UUID.randomUUID().toString();
     List<String> messages = new LinkedList<>();
-    writer = new KafkaWriter(zkURL, topic, 0, id);
+    LinkedList<String> buffer = new LinkedList<>();
+
     for (int i = 0; i < count; i++) {
       writer.write(randomMessage);
       buffer.add(randomMessage);
@@ -113,6 +112,32 @@ public class TestKafkaWriter {
   }
 
   /**
+   * 
+   */
+  @Test
+  public void testWriteManyPartitions() throws Exception {
+    // odd numbers to one partition, even to other
+    // Read all see if we get all integers
+    int count = 20;
+    Set<Integer> expected = createRange(0, count);
+    helper.addPartitions(topic, 2);
+    writer = new KafkaWriter.Builder(zkURL, topic).messageGenerator(new IntegerGenerator()).build();
+    for (int i = 0; i <= count; i++) {
+      writer.run();
+    }
+    List<String> messages = TestUtils.readMessages(topic, zkURL);
+    List<Integer> actual = TestUtils.convert(messages);
+    System.out.println("expectedSize: " + expected.size() + " actualSize:" + actual.size());
+    System.out.println("expected " + expected + " actual " + actual);
+    assertTrue(expected.containsAll(actual));
+    assertTrue(actual.containsAll(expected));
+
+    // assertTrue(Sets.difference(expected, actual).size()==0);
+  }
+
+
+
+  /**
    * Write 100 messages to a non existent topic. If no Exception thrown then we are good.
    */
   @Test
@@ -120,13 +145,13 @@ public class TestKafkaWriter {
     topic = TestUtils.createRandomTopic();
     int partition = new Random().nextInt(1);
     try {
-      writer = new KafkaWriter(zkURL, topic, partition, id);
+      writer = new KafkaWriter.Builder(zkURL, topic).partition(partition).build();
       for (int i = 0; i < 5; i++) {
         writer.run();
       }
-      assertTrue("Can write to auto created topic", true);
+      fail("How could we write to a non-existent partition? " + topic);
     } catch (Exception e) {
-      fail("Cannot write to new Topic");
+      assertTrue("We should not be able to write to " + topic, true);
     }
   }
 
@@ -137,9 +162,7 @@ public class TestKafkaWriter {
   public void testCountMessages() {
     List<String> messages = new LinkedList<>();
     int count = 2000;
-
     try {
-      writer = new KafkaWriter(zkURL, topic, 0, id);
       String randomMessage;
       for (int i = 0; i < count; i++) {
         randomMessage = UUID.randomUUID().toString();
@@ -171,7 +194,7 @@ public class TestKafkaWriter {
     int runDuration = 30;
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter(zkURL, topic, 0, i);
+      writer = new KafkaWriter.Builder(zkURL, topic).build();
       final ScheduledFuture<?> timeHandle =
           scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 
@@ -190,16 +213,23 @@ public class TestKafkaWriter {
 
   }
 
-  @Test(expected = kafka.common.FailedToSendMessageException.class)
+  @Test(expected = FailedToSendMessageException.class)
   public void testWriteToNonExistentPartition() throws Exception {
     // create new topic, create writer to partition 20, expect exception
     topic = TestUtils.createRandomTopic();
-    writer = new KafkaWriter(zkURL, topic, 20, 1);
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(20).build();
     for (int i = 0; i < 100; i++) {
       writer.write(UUID.randomUUID().toString());
     }
   }
 
+  private Set<Integer> createRange(int start, int count) {
+    Set<Integer> ints = new HashSet<>();
+    for (int i = start; i <= count; ++i) {
+      ints.add(i);
+    }
+    return ints;
+  }
 
   @After
   public void tearDown() throws Exception {

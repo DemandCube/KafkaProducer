@@ -62,7 +62,7 @@ public class KafkaReader implements Closeable {
       currentOffset = getOffset(kafka.api.OffsetRequest.EarliestTime());
     }
     firstRun = false;
-    List<String> messages = new LinkedList<>();
+    List<String> messages = new LinkedList<String>();
     FetchRequest req =
         new FetchRequestBuilder().clientId(getClientName())
             .addFetch(topic, partition, currentOffset, 100000).build();

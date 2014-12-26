@@ -19,7 +19,7 @@ import org.I0Itec.zkclient.ZkClient;
 
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 
-public class MyCluster {
+public class EmbeddedCluster {
 
   private int numOfZkInstances;
   private int numOfKafkaInstances;
@@ -30,7 +30,7 @@ public class MyCluster {
   private List<EmbeddedZookeeper> zookeeperServers;
   private List<KafkaServer> kafkaServers;
 
-  public MyCluster(int numOfZkInstances, int numOfKafkaInstances) {
+  public EmbeddedCluster(int numOfZkInstances, int numOfKafkaInstances) {
     this.numOfZkInstances = numOfZkInstances;
     this.numOfKafkaInstances = numOfKafkaInstances;
 
@@ -46,7 +46,6 @@ public class MyCluster {
       // setup Zookeeper
       String zkConnect = TestZKUtils.zookeeperConnect();
       zkHosts.add(new HostPort(zkConnect));
-      System.out.println(zkConnect);
       EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
       zookeeperServers.add(zkServer);
       zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
@@ -59,6 +58,8 @@ public class MyCluster {
 
       KafkaConfig config = new KafkaConfig(props);
       Time mock = new MockTime();
+      System.out.println("leader rebalance enabled " + config.autoLeaderRebalanceEnable());
+      System.out.println("controlled shutdown enabled " + config.controlledShutdownEnable());
       KafkaServer kafkaServer = TestUtils.createServer(config, mock);
       kafkaHosts.add(new HostPort("127.0.0.1", port));
       kafkaServers.add(kafkaServer);
@@ -103,4 +104,6 @@ public class MyCluster {
   public String getZkURL() {
     return zookeeperServers.get(0).connectString();
   }
+
+  public void propagateMetadata(String topic) {}
 }

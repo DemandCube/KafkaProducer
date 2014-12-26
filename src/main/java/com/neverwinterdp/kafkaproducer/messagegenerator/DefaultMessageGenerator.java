@@ -18,7 +18,7 @@ import com.neverwinterdp.kafkaproducer.partitioner.SimplePartitioner;
  * 
  * Note that a message generator is responsible for defining its partitioner
  * */
-public class SampleMessageGenerator implements MessageGenerator<String> {
+public class DefaultMessageGenerator implements MessageGenerator<String> {
 
   private AtomicLong sequenceID;
   String message;
@@ -28,7 +28,7 @@ public class SampleMessageGenerator implements MessageGenerator<String> {
   private int partition;
   private Class<? extends Partitioner> partitionerClass;
 
-  public SampleMessageGenerator(String topic, int partition, int id) {
+  public DefaultMessageGenerator(String topic, int partition, int id) {
     super();
     this.topic = topic;
     this.partition = partition;

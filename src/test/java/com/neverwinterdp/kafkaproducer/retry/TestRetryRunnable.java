@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
 import com.neverwinterdp.kafkaproducer.retry.RetryException;
-import com.neverwinterdp.kafkaproducer.retry.RetryRunnable;
+import com.neverwinterdp.kafkaproducer.retry.RunnableRetryer;
 import com.neverwinterdp.kafkaproducer.retry.RetryStrategy;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 
@@ -32,7 +32,7 @@ public class TestRetryRunnable {
   }
 
   ExecutorService executorService;
-  RetryRunnable retryRunnable;
+  RunnableRetryer retryRunnable;
   RetryStrategy retryStrategy;
   private int maxRetries = 5;
   private int waitDuration = 1000;
@@ -53,7 +53,7 @@ public class TestRetryRunnable {
         .doNothing().when(runnable).run();
 
 
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();
@@ -76,7 +76,7 @@ public class TestRetryRunnable {
         .doNothing().when(runnable).run();
 
 
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();
@@ -98,7 +98,7 @@ public class TestRetryRunnable {
         .doThrow(new NullPointerException())
         .doThrow(new NullPointerException())
         .when(runnable).run();
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();
@@ -115,7 +115,7 @@ public class TestRetryRunnable {
     doThrow(new ArithmeticException()).when(runnable).run();
 
 
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();
@@ -132,7 +132,7 @@ public class TestRetryRunnable {
     RetryableRunnable runnable = mock(RetryableRunnable.class);
     doThrow(new RuntimeException()).when(runnable).run();
 
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();
@@ -150,7 +150,7 @@ public class TestRetryRunnable {
     RetryableRunnable runnable = mock(RetryableRunnable.class);
     doThrow(new ChildException()).doThrow(new ChildException()).doNothing().when(runnable).run();
 
-    RetryRunnable retryRunnable = new RetryRunnable(retryStrategy, runnable);
+    RunnableRetryer retryRunnable = new RunnableRetryer(retryStrategy, runnable);
     Future<?> future = executorService.submit(retryRunnable);
     try {
       future.get();

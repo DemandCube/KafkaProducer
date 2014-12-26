@@ -20,7 +20,7 @@ import com.google.common.collect.Iterables;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-public class TestMyCluster {
+public class TestEmbeddedCluster {
 
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
@@ -28,7 +28,7 @@ public class TestMyCluster {
 
   @Test
   public void testClusterStarts() {
-    MyCluster cluster = new MyCluster(1, 1);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, 1);
     try {
       cluster.start();
     } catch (Exception e) {
@@ -41,7 +41,7 @@ public class TestMyCluster {
 
   @Test
   public void testZkStarts() {
-    MyCluster cluster = new MyCluster(1, 1);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, 1);
     int zkPort;
     try {
       cluster.start();
@@ -57,7 +57,7 @@ public class TestMyCluster {
 
   @Test
   public void testClusterShutdown() {
-    MyCluster cluster = new MyCluster(1, 1);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, 1);
     try {
       cluster.start();
       cluster.shutdown();
@@ -71,7 +71,7 @@ public class TestMyCluster {
   @Test
   // TODO
   public void testClusterRplicates() {
-    MyCluster cluster = new MyCluster(1, 3);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, 3);
     try {
       cluster.start();
     } catch (Exception e) {
@@ -84,7 +84,7 @@ public class TestMyCluster {
   @Test
   public void testCountKafkaBrokers() throws Exception {
     int kafkaBrokers = 3;
-    MyCluster cluster = new MyCluster(1, kafkaBrokers);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, kafkaBrokers);
     try {
       cluster.start();
       assertEquals(kafkaBrokers, cluster.getKafkaHosts().size());
@@ -99,7 +99,7 @@ public class TestMyCluster {
     String topic = Long.toHexString(Double.doubleToLongBits(Math.random()));
     int kafkaBrokers = 3;
     int kafkaPort;
-    MyCluster cluster = new MyCluster(1, kafkaBrokers);
+    EmbeddedCluster cluster = new EmbeddedCluster(1, kafkaBrokers);
     Producer<String, byte[]> producer = null;
     try {
       cluster.start();

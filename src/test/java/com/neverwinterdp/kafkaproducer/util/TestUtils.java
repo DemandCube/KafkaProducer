@@ -6,7 +6,8 @@ import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.neverwinterdp.kafkaproducer.reader.MyConsumer;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 public class TestUtils {
 
@@ -29,14 +30,16 @@ public class TestUtils {
 
   public static List<String> readMessages(String topic, String zkURL) {
     List<String> messages = new LinkedList<>();
-    int partitions = 0;
+    int numPartitions = 0;
     try (ZookeeperHelper helper = new ZookeeperHelper(zkURL)) {
-      partitions = helper.getBrokersForTopic(topic).size();
+      
+      numPartitions = helper.getBrokersForTopic(topic).keySet().size();
+      System.out.println("number of partitions --> "+ helper.getBrokersForTopic(topic));
     } catch (Exception e) {
       e.printStackTrace();
     }
-    for (int i = 0; i < partitions; i++) {
-      try (MyConsumer consumer = new MyConsumer(zkURL, topic, i)) {
+    for (int i = 0; i < numPartitions; i++) {
+      try (Consumer consumer = new Consumer(zkURL, topic, i)) {
         messages.addAll(consumer.read());
       }
     }
@@ -45,5 +48,16 @@ public class TestUtils {
 
   public static String createRandomTopic() {
     return Long.toHexString(Double.doubleToLongBits(Math.random()));
+  }
+
+
+  public static List<Integer> convert(List<String> messages) {
+    return Lists.transform(messages,
+        new Function<String, Integer>() {
+          @Override
+          public Integer apply(String t) {
+            return Integer.parseInt(t);
+          }
+        });
   }
 }
