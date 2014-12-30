@@ -18,6 +18,7 @@ import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
+// TODO externalize properties
 public class KafkaWriter implements RetryableRunnable, Closeable {
 
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
@@ -34,12 +35,12 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   @Override
   public void run() {
-    System.out.println("writing");
+    System.out.println(Thread.currentThread().getName() + " writing");
     String message = messageGenerator.next();
     try {
       write(message);
     } catch (Exception e) {
-      System.out.println("uncaught exception " + e);
+      System.out.println("Exception " + e);
       throw e;
     }
   }
@@ -101,6 +102,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     helper.close();
   }
 
+  // TODO also accept kafkaBrokerList
   public static class Builder {
     // required
     private final String topic;
@@ -140,25 +142,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     messageGenerator = builder.messageGenerator;
     partitionerClass = builder.partitionerClass;
 
-    Collection<HostPort> brokers;
-    String brokerString;
-
     helper = new ZookeeperHelper(zkURL);
-    /*
-     * checkArgument(helper.getBrokersForTopicAndPartition(topic, partition == -1 ? 0 : partition)
-     * .size() != 0);
-     */
-    brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
-
-
-    Properties props = new Properties();
-    props.put("metadata.broker.list", brokerString);
-    props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", partitionerClass.getName());
-    props.put("request.required.acks", "1");
-
-    ProducerConfig config = new ProducerConfig(props);
-    producer = new Producer<String, String>(config);
+    reconnect();
   }
 }

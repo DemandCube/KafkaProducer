@@ -1,10 +1,14 @@
 package com.neverwinterdp.kafkaproducer.retry;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.log4j.Logger;
 
 public class RunnableRetryer implements Runnable {
 
   private static final Logger logger = Logger.getLogger(RunnableRetryer.class);
+  private static final AtomicInteger counter = new AtomicInteger(0);
+
   private RetryStrategy retryStrategy;
   private RetryableRunnable runnable;
   private boolean isSuccess;
@@ -24,6 +28,7 @@ public class RunnableRetryer implements Runnable {
         runnable.run();
         isSuccess = true;
         retryStrategy.shouldRetry(false);
+        counter.incrementAndGet();
       } catch (Exception ex) {
         logger.debug("We got an exception: " + ex.toString());
         retryStrategy.errorOccured(ex);
@@ -65,5 +70,15 @@ public class RunnableRetryer implements Runnable {
 
   public void setSuccess(boolean isSuccess) {
     this.isSuccess = isSuccess;
+  }
+
+  // hack
+  public static AtomicInteger getCounter() {
+    return counter;
+  }
+
+  // hack
+  public static void resetCounter() {
+    counter.set(0);
   }
 }

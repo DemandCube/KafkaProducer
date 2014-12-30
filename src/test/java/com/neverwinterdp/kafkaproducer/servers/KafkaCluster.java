@@ -17,7 +17,6 @@ public class KafkaCluster {
     this(serverDir, 1, 3);
   }
 
-
   public KafkaCluster(String serverDir, int numOfZkInstances, int numOfKafkaInstances) {
     this.serverDir = serverDir;
     this.numOfZkInstances = numOfZkInstances;

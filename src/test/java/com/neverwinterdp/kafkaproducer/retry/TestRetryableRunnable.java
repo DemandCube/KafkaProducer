@@ -26,7 +26,8 @@ import com.neverwinterdp.kafkaproducer.retry.RunnableRetryer;
 import com.neverwinterdp.kafkaproducer.retry.RetryStrategy;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 
-public class TestRetryRunnable {
+public class TestRetryableRunnable {
+ 
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
   }
@@ -176,8 +177,6 @@ public class TestRetryRunnable {
   }
 
   class ChildException extends NullPointerException {
-
     private static final long serialVersionUID = 1L;
-
   }
 }

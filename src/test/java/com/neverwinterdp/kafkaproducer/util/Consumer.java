@@ -97,6 +97,7 @@ public class Consumer implements AutoCloseable {
       }
       currentOffset = nextOffset;
     } while (hasNextOffset);
+    System.out.println("Read -->"+messages.size());
     return messages;
   }
 

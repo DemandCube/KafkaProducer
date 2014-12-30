@@ -3,8 +3,17 @@ package com.neverwinterdp.kafkaproducer.util;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import kafka.admin.PreferredReplicaLeaderElectionCommand;
+import kafka.common.TopicAndPartition;
+import kafka.utils.ZKStringSerializer$;
+
+import org.I0Itec.zkclient.ZkClient;
+
+import scala.collection.mutable.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -28,19 +37,28 @@ public class TestUtils {
     }
   }
 
+  // TODO ensure all messages are read
   public static List<String> readMessages(String topic, String zkURL) {
-    List<String> messages = new LinkedList<>();
     int numPartitions = 0;
-    try (ZookeeperHelper helper = new ZookeeperHelper(zkURL)) {
-      
+    List<String> messages = new LinkedList<>();
+    ZookeeperHelper helper = null;
+    try {
+      helper = new ZookeeperHelper(zkURL);
+      waitUntilMetadataIsPropagated(zkURL, topic);
       numPartitions = helper.getBrokersForTopic(topic).keySet().size();
-      System.out.println("number of partitions --> "+ helper.getBrokersForTopic(topic));
+      System.out.println("Leader for topic --> " + helper.getLeaderForTopicAndPartition(topic, 0));
+      for (int i = 0; i < numPartitions; i++) {
+        try (Consumer consumer = new Consumer(zkURL, topic, i)) {
+          messages.addAll(consumer.read());
+        }
+      }
     } catch (Exception e) {
       e.printStackTrace();
-    }
-    for (int i = 0; i < numPartitions; i++) {
-      try (Consumer consumer = new Consumer(zkURL, topic, i)) {
-        messages.addAll(consumer.read());
+    } finally {
+      try {
+        System.out.println("helper.getLeader " + helper.getLeaderForTopicAndPartition(topic, 0));
+        helper.close();
+      } catch (Exception e) {
       }
     }
     return messages;
@@ -59,5 +77,16 @@ public class TestUtils {
             return Integer.parseInt(t);
           }
         });
+  }
+
+  public static void waitUntilMetadataIsPropagated(String zkURL, String topic) {
+    ZkClient zkClient = new ZkClient(zkURL, 30000, 30000, ZKStringSerializer$.MODULE$);
+    TopicAndPartition partition = new TopicAndPartition(topic, 0);
+    Set<TopicAndPartition> x =
+        scala.collection.JavaConversions.asScalaSet(Collections.singleton(partition));
+    PreferredReplicaLeaderElectionCommand command =
+        new PreferredReplicaLeaderElectionCommand(zkClient, x);
+    command.moveLeaderToPreferredReplica();
+    zkClient.close();
   }
 }

@@ -23,8 +23,8 @@ import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-// Warning: This test takes a while
 public class TestKafkaProducer {
+
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
   }
@@ -32,11 +32,12 @@ public class TestKafkaProducer {
   private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
   private EmbeddedCluster servers;
   private ZookeeperHelper helper;
-  private KafkaWriter writer;
-  private String topic;
   private int kafkaBrokers = 3;
   private String zkURL;
   private int zkBrokers = 1;
+
+  private KafkaWriter writer;
+  private String topic;
 
   @Before
   public void setUp() throws Exception {
@@ -45,7 +46,50 @@ public class TestKafkaProducer {
     zkURL = servers.getZkURL();
     helper = new ZookeeperHelper(zkURL);
     topic = TestUtils.createRandomTopic();
-    helper.createTopic(topic, 1, 3);
+    helper.createTopic(topic, 1, kafkaBrokers);
+  }
+
+
+  /**
+   * Have 5 threads write to a topic partition, while writing kill leader. Check if all messages
+   * were writen to kafka despite dead leader.
+   */
+  @Test
+  public void testWriteToFailedLeader() throws Exception {
+    List<String> messages = new ArrayList<>();
+    // 6 writers, writing every 2 seconds for 300 seconds
+    int delay = 2;
+    int runDuration = 20;
+
+    RunnableRetryer retryer;
+    for (int i = 0; i < writers; i++) {
+      writer = new KafkaWriter.Builder(zkURL, topic).build();
+      retryer =
+          new RunnableRetryer(
+              new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
+      final ScheduledFuture<?> timeHandle =
+          scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
+
+
+      scheduler.schedule(new Runnable() {
+        public void run() {
+          timeHandle.cancel(false);
+          scheduler.shutdown();
+        }
+      }, runDuration, TimeUnit.SECONDS);
+    }
+    killLeader();
+
+    // wait for all writers to finish writing
+    Thread.sleep(runDuration * 3000);
+
+    System.out.println("hopefully we have finished writting everything.");
+
+    messages = TestUtils.readMessages(topic, zkURL);
+    // int expected = writers * runDuration / delay;
+    int expected = RunnableRetryer.getCounter().get();
+
+    assertEquals(expected, messages.size());
   }
 
   /**
@@ -53,22 +97,20 @@ public class TestKafkaProducer {
    * were writen to kafka despite dead leader.
    */
   @Test
-  //TODO write a test that does the same for two partitions
-  public void testWriteToFailedLeader() throws Exception {
+  public void testFailTwoLeaders() throws Exception {
     List<String> messages = new ArrayList<>();
-    // 6 writers, writing every 5 seconds for 30 seconds
-    int delay = 5;
-    int runDuration = 120;
+    // 6 writers, writing every 2 seconds for 300 seconds
+    int delay = 2;
+    int runDuration = 20;
 
     RunnableRetryer retryer;
-
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter.Builder(zkURL, topic).build();
       retryer =
           new RunnableRetryer(
               new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
       final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(retryer, 0, delay, TimeUnit.SECONDS);
+          scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
 
       scheduler.schedule(new Runnable() {
         public void run() {
@@ -76,25 +118,90 @@ public class TestKafkaProducer {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
+    killLeader();
+    // and we also kill the new leader
+    killLeader();
+
+    // Wait for all writers to finish writing
+    Thread.sleep(runDuration * 3000);
+
+    System.out.println("hopefully we have finished writting everything.");
+    messages = TestUtils.readMessages(topic, zkURL);
+
+    // int expected = writers * runDuration / delay;
+    int expected = RunnableRetryer.getCounter().get();
+    assertEquals(expected, messages.size());
+  }
+
+  /**
+   * Have 5 threads write to a topic partition, while writing kill leader. Check if all messages
+   * were writen to kafka despite dead leader.
+   */
+  @Test
+  public void testKillAllBrokers() throws Exception {
+
+    List<String> messages = new ArrayList<>();
+    // 6 writers, writing every 2 seconds for 300 seconds
+    int delay = 2;
+    int runDuration = 20;
+
+    RunnableRetryer retryer;
+    for (int i = 0; i < writers; i++) {
+      writer = new KafkaWriter.Builder(zkURL, topic).build();
+      retryer =
+          new RunnableRetryer(
+              new DefaultRetryStrategy(5, 1000, FailedToSendMessageException.class), writer);
+      final ScheduledFuture<?> timeHandle =
+          scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
+      scheduler.schedule(new Runnable() {
+        public void run() {
+          timeHandle.cancel(false);
+        }
+      }, runDuration, TimeUnit.SECONDS);
+    }
+
+    for (int i = 0; i < kafkaBrokers; i++) {
+      killLeader();
+    }
+
+    Thread.sleep(3000);
+    startAllBrokers();
+
+
+    System.out.println("sleeping for " + runDuration * 3000 + " ms to wait all writers to write.");
+    Thread.sleep(runDuration * 3000);
+    System.out.println("we have writen everything.");
+    kafka.utils.TestUtils.waitUntilMetadataIsPropagated(
+        scala.collection.JavaConversions.asScalaBuffer(servers.getKafkaServers()), topic, 0, 5000L);
+    messages = TestUtils.readMessages(topic, zkURL);
+
+    // int expected = writers * runDuration / delay;
+    int expected = RunnableRetryer.getCounter().get();
+    assertEquals(expected, messages.size());
+  }
+
+  /**
+   * @throws Exception
+   */
+  private void killLeader() throws Exception {
     // while writer threads are writing, kill the leader
     HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
     for (KafkaServer server : servers.getKafkaServers()) {
       if (leader.getHost().equals(server.config().hostName())
           && leader.getPort() == server.config().port()) {
+        server.shutdown();
+        server.awaitShutdown();
         System.out.println("Shutting down current leader --> " + server.config().hostName() + ":"
             + server.config().port());
-        server.shutdown();
       }
     }
+  }
 
-    // Sleep a bit for all writers to finish writing
-    Thread.sleep((runDuration * 1000) + 3000);
-    System.out.println("hopefully we have finished writting everything.");
-
-    messages = TestUtils.readMessages(topic, zkURL);
-
-    int expected = writers * (((runDuration) / delay) + 1);
-    assertEquals(expected, messages.size());
+  private void startAllBrokers() {
+    for (KafkaServer server : servers.getKafkaServers()) {
+      server.startup();
+      System.out.println("starting server localhost:" + server.config().port());
+    }
   }
 
   @After
@@ -102,5 +209,6 @@ public class TestKafkaProducer {
     scheduler.shutdownNow();
     helper.close();
     servers.shutdown();
+    RunnableRetryer.resetCounter();
   }
 }
