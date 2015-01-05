@@ -70,7 +70,17 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
     firstRun = true;
   }
 
-  // One offset many messages?
+  @Override
+  // TODO return next offset
+  public List<String> call() throws Exception {
+    if (hasNext())
+      return read();
+    else {
+      return null;
+    }
+  }
+
+  // One offset many messages
   public List<String> read() {
     // while running, read, if read.size==0 wait then read again
     List<String> messages = new LinkedList<String>();
@@ -118,28 +128,21 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
       read = messages.size();
       System.err.println("messages " + messages);
       if (read == 0) {
-        retryStrategy.incrementRetryCount();
         try {
+          retryStrategy.incrementRetryCount();
           retryStrategy.await();
-          System.out.println("awaking " + System.currentTimeMillis() + " "
-              + Thread.currentThread().getName());
         } catch (Exception e) {
           e.printStackTrace();
         }
       }
       return messages;
     } while (retryStrategy.shouldRetry());
-
   }
 
   /**
    * Return true if for the topic/partition we have an offset > currentOffset
    */
   public boolean hasNext() {
-    System.out.println("hasnext offset " + hasNextOffset);
-    System.out.println("current offset " + currentOffset);
-    System.out.println("getOffset " + getOffset(kafka.api.OffsetRequest.LatestTime()));
-    System.out.println("should retry " + retryStrategy.shouldRetry());
     return retryStrategy.shouldRetry() || hasNextOffset
         || currentOffset < getOffset(kafka.api.OffsetRequest.LatestTime());
   }
@@ -149,7 +152,7 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
    * To get Earliest offset ask for kafka.api.OffsetRequest.EarliestTime(). To get latest offset ask
    * for kafka.api.OffsetRequest.LatestTime()
    */
-  public long getOffset(long time) {
+  private long getOffset(long time) {
     Map<TopicAndPartition, PartitionOffsetRequestInfo> offsetInfo =
         new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
     offsetInfo
@@ -159,6 +162,7 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
             .CurrentVersion(), getClientName()));
     long[] endOffset = response.offsets(topic, partition);
     logger.info("endoffsets:" + Arrays.toString(endOffset) + " TIME:" + time);
+       
     return endOffset[0];
   }
 
@@ -166,22 +170,12 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
     return topic + "_" + partition;
   }
 
+  public void setRetryStrategy(DefaultRetryStrategy retryStrategy) {
+    this.retryStrategy = retryStrategy;
+  }
+
   @Override
   public void close() {
     consumer.close();
-  }
-
-  @Override
-  // TODO return next offset
-  public List<String> call() throws Exception {
-    if (hasNext())
-      return read();
-    else {
-      return null;
-     }
-  }
-
-  public void setRetryStrategy(DefaultRetryStrategy retryStrategy) {
-    this.retryStrategy = retryStrategy;
   }
 }

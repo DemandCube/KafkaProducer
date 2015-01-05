@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -28,6 +29,7 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.messagegenerator.IntegerGenerator;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
+import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
@@ -219,6 +221,22 @@ public class TestKafkaWriter {
     writer = new KafkaWriter.Builder(zkURL, topic).partition(20).build();
     for (int i = 0; i < 100; i++) {
       writer.write(UUID.randomUUID().toString());
+    }
+  }
+
+  @Test
+  public void testBrokerListConstructor() throws Exception {
+    // create new topic, create writer to partition 20, expect exception
+    topic = TestUtils.createRandomTopic();
+    Collection<HostPort> brokerList = cluster.getKafkaHosts();
+    logger.info("testWriteToPartitionOne. ");
+    try {
+      writer = new KafkaWriter.Builder(brokerList, topic).build();
+      for (int i = 0; i < 100; i++) {
+        writer.write("my message");
+      }
+    } catch (Exception e) {
+      fail("couldnt write to kafka " + e);
     }
   }
 

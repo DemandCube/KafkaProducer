@@ -6,14 +6,14 @@ import java.util.Collection;
 import java.util.Properties;
 
 import kafka.javaapi.producer.Producer;
+import kafka.producer.DefaultPartitioner;
 import kafka.producer.KeyedMessage;
 import kafka.producer.Partitioner;
 import kafka.producer.ProducerConfig;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableSet;
-import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
 import com.neverwinterdp.kafkaproducer.messagegenerator.DefaultMessageGenerator;
+import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
@@ -21,7 +21,6 @@ import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 public class KafkaWriter implements RetryableRunnable, Closeable {
 
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
-  private static final CharMatcher CHAR_MATCHER = CharMatcher.anyOf("[]");
 
   private Producer<String, String> producer;
   private String zkURL;
@@ -31,25 +30,31 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private Class<? extends Partitioner> partitionerClass;
   private ZookeeperHelper helper;
   private Properties properties;
+  private Collection<HostPort> brokerList;
 
   private KafkaWriter(Builder builder) throws Exception {
     zkURL = builder.zkURL;
+    brokerList = builder.brokerList;
+    if (zkURL != null) {
+      helper = new ZookeeperHelper(zkURL);
+    }
     topic = builder.topic;
     partition = builder.partition;
     messageGenerator = builder.messageGenerator;
     partitionerClass = builder.partitionerClass;
     properties = builder.properties;
-
-    helper = new ZookeeperHelper(zkURL);
     connect();
   }
 
   private void connect() throws Exception {
     Collection<HostPort> brokers;
     String brokerString;
-
-    brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
+    if (zkURL != null)
+      brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+    else {
+      brokers = brokerList;
+    }
+    brokerString = brokers.toString().replace("[", "").replace("]", "");
 
     Properties props = new Properties();
 
@@ -113,29 +118,44 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   @Override
   public void close() throws IOException {
     producer.close();
-    helper.close();
+    if (helper != null)
+      helper.close();
   }
 
-  // TODO also accept kafkaBrokerList
   public static class Builder {
     // required
     private final String topic;
-    private final String zkURL;
+
+    // Caller must provide one of the two.
+    private Collection<HostPort> brokerList;
+    private String zkURL;
 
     // optional
     private int partition = -1;
     private Properties properties = new Properties();
     private MessageGenerator<String> messageGenerator;
-    public Class<? extends Partitioner> partitionerClass = kafka.producer.DefaultPartitioner.class;
+    public Class<? extends Partitioner> partitionerClass = DefaultPartitioner.class;
 
+    // TODO clean up the message generator
     public Builder(String zkURL, String topic) {
       this.zkURL = zkURL;
       this.topic = topic;
       messageGenerator = new DefaultMessageGenerator(topic, 0, 0);
     }
 
+    public Builder(Collection<HostPort> brokerList, String topic) {
+      this.brokerList = brokerList;
+      this.topic = topic;
+      messageGenerator = new DefaultMessageGenerator(topic, 0, 0);
+    }
+
     public Builder partition(int partition) {
       this.partition = partition;
+      return this;
+    }
+
+    public Builder brokerList(Collection<HostPort> brokerList) {
+      this.brokerList = brokerList;
       return this;
     }
 

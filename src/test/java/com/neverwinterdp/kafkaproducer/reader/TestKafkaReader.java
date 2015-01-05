@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
+import com.neverwinterdp.kafkaproducer.util.TestLabel;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 import com.neverwinterdp.kafkaproducer.writer.TestKafkaWriter;
@@ -40,13 +41,14 @@ public class TestKafkaReader {
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
   }
-  ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+  private static final AtomicInteger integer = new AtomicInteger(0);
   private static final Logger logger = Logger.getLogger(TestKafkaWriter.class);
   private static String zkURL;
   private static EmbeddedCluster cluster;
   private static ZookeeperHelper helper;
 
-
+  private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
   private KafkaReader reader;
   private String topic;
 
@@ -147,8 +149,8 @@ public class TestKafkaReader {
 
     int count = 0;
     for (KafkaReader reader : readers) {
-      while(reader.hasNext())
-      count += reader.read().size();
+      while (reader.hasNext())
+        count += reader.read().size();
     }
     assertEquals(writes, count);
   }
@@ -174,6 +176,7 @@ public class TestKafkaReader {
   }
 
   @Test
+  @TestLabel("KW-PT1_1")
   public void testHasNoNext() throws Exception {
     System.out.println("this is waht matter most");
     assertFalse(reader.hasNext());
@@ -208,7 +211,6 @@ public class TestKafkaReader {
     printRunningThreads();
   }
 
-  static final AtomicInteger integer = new AtomicInteger(0);
 
   class Writer implements Runnable {
 
