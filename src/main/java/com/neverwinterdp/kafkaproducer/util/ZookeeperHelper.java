@@ -44,7 +44,7 @@ public class ZookeeperHelper implements Closeable {
   private CuratorFramework zkClient;
   private PathChildrenCache pathChildrenCache;
 
-  public ZookeeperHelper(String zookeeperURL) throws InterruptedException {
+  public ZookeeperHelper(String zookeeperURL) {
     super();
     zkConnectString = zookeeperURL;
     zkClient = CuratorFrameworkFactory.newClient(zkConnectString,
@@ -52,9 +52,13 @@ public class ZookeeperHelper implements Closeable {
     init();
   }
 
-  private void init() throws InterruptedException {
+  private void init() {
     zkClient.start();
-    zkClient.blockUntilConnected();
+    try {
+      zkClient.blockUntilConnected();
+    } catch (InterruptedException e) {
+      logger.error(e.getMessage(), e);
+    }
   }
 
   public HostPort getLeaderForTopicAndPartition(String topic, int partition) throws Exception {

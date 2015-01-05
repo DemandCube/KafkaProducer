@@ -1,19 +1,20 @@
 package com.neverwinterdp.kafkaproducer.retry;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
-public class RunnableRetryer implements Runnable {
+public class CallableRetryer<T> implements Callable<T> {
 
-  private static final Logger logger = Logger.getLogger(RunnableRetryer.class);
+  private static final Logger logger = Logger.getLogger(CallableRetryer.class);
   private static final AtomicInteger counter = new AtomicInteger(0);
 
   private RetryStrategy retryStrategy;
-  private RetryableRunnable runnable;
+  private RetryableCallable<T> runnable;
   private boolean isSuccess;
 
-  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable runnable) {
+  public CallableRetryer(RetryStrategy retryStrategy, RetryableCallable<T> runnable) {
     super();
     this.retryStrategy = retryStrategy;
     this.runnable = runnable;
@@ -21,14 +22,16 @@ public class RunnableRetryer implements Runnable {
   }
 
   @Override
-  public void run() {
+  public T call() {
     retryStrategy.reset();
+    T x;
     do {
       try {
-        runnable.run();
+        x = runnable.call();
         isSuccess = true;
         retryStrategy.shouldRetry(false);
         counter.incrementAndGet();
+        return x;
       } catch (Exception ex) {
         logger.debug("We got an exception: " + ex.toString());
         retryStrategy.errorOccured(ex);
@@ -46,6 +49,7 @@ public class RunnableRetryer implements Runnable {
         }
       }
     } while (retryStrategy.shouldRetry());
+    throw new RetryException();
   }
 
   public RetryStrategy getRetryStrategy() {
@@ -56,11 +60,11 @@ public class RunnableRetryer implements Runnable {
     this.retryStrategy = retryStrategy;
   }
 
-  public RetryableRunnable getRunnable() {
+  public RetryableCallable<T> getRunnable() {
     return runnable;
   }
 
-  public void setRunnable(RetryableRunnable runnable) {
+  public void setRunnable(RetryableCallable<T> runnable) {
     this.runnable = runnable;
   }
 

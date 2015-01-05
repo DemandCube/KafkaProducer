@@ -15,19 +15,23 @@ public class DefaultRetryStrategy implements RetryStrategy {
   private Predicate<? super Exception> exceptionPredicate;
   private Exception exception;
 
-  //TODO retry on more than 1 type of exception
+  // TODO retry on more than 1 type of exception
   public DefaultRetryStrategy(int maxRetries, int waitDuration,
       Class<? extends Exception> retryableException) {
     super();
     this.maxRetries = maxRetries;
     this.waitDuration = waitDuration;
     this.retries = 0;
-    this.exceptionPredicate = or(isNull(), instanceOf(retryableException));
+    if (retryableException == null)
+      this.exceptionPredicate = isNull();
+    else {
+      this.exceptionPredicate = or(isNull(), instanceOf(retryableException));
+
+    }
   }
 
   @Override
   public boolean shouldRetry() {
-    // retryCount less than max retries and exception is a retryable exception or is null
     return retries < maxRetries && (exceptionPredicate.apply(exception));
   }
 
@@ -60,7 +64,7 @@ public class DefaultRetryStrategy implements RetryStrategy {
   }
 
   @Override
-  public void await(long waitDuration) throws InterruptedException {
+  public void await() throws InterruptedException {
     Thread.sleep(waitDuration);
   }
 

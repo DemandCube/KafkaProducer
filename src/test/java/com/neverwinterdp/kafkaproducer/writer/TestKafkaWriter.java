@@ -6,11 +6,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,7 +49,7 @@ public class TestKafkaWriter {
   public static void setUpBeforeClass() throws Exception {
     printRunningThreads();
     // one zk, 3 kafkas
-    cluster = new EmbeddedCluster(1, 3);
+    cluster = new EmbeddedCluster(1, 1);
     cluster.start();
     zkURL = cluster.getZkURL();
     helper = new ZookeeperHelper(zkURL);
@@ -119,20 +119,19 @@ public class TestKafkaWriter {
     // odd numbers to one partition, even to other
     // Read all see if we get all integers
     int count = 20;
-    Set<Integer> expected = createRange(0, count);
+    Set<Integer> expected = TestUtils.createRange(0, count);
     helper.addPartitions(topic, 2);
     writer = new KafkaWriter.Builder(zkURL, topic).messageGenerator(new IntegerGenerator()).build();
-    for (int i = 0; i <= count; i++) {
+    for (int i = 0; i < count; i++) {
       writer.run();
     }
     List<String> messages = TestUtils.readMessages(topic, zkURL);
-    List<Integer> actual = TestUtils.convert(messages);
+    Set<Integer> actual = new TreeSet<>(TestUtils.convert(messages));
     System.out.println("expectedSize: " + expected.size() + " actualSize:" + actual.size());
     System.out.println("expected " + expected + " actual " + actual);
-    assertTrue(expected.containsAll(actual));
-    assertTrue(actual.containsAll(expected));
 
-    // assertTrue(Sets.difference(expected, actual).size()==0);
+    assertEquals(expected, actual);
+
   }
 
 
@@ -205,7 +204,7 @@ public class TestKafkaWriter {
       }, runDuration, TimeUnit.SECONDS);
     }
     // Sleep a bit for all writers to finish writing
-    Thread.sleep((runDuration * 1000) + 2000);
+    Thread.sleep((runDuration * 1500) + 2000);
     messages = TestUtils.readMessages(topic, zkURL);
     int expected = writers * (((runDuration) / delay) + 1);
     assertEquals(expected, messages.size());
@@ -223,13 +222,7 @@ public class TestKafkaWriter {
     }
   }
 
-  private Set<Integer> createRange(int start, int count) {
-    Set<Integer> ints = new HashSet<>();
-    for (int i = start; i <= count; ++i) {
-      ints.add(i);
-    }
-    return ints;
-  }
+
 
   @After
   public void tearDown() throws Exception {

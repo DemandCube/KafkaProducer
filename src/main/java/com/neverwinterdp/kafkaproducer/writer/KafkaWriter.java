@@ -18,7 +18,6 @@ import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-// TODO externalize properties
 public class KafkaWriter implements RetryableRunnable, Closeable {
 
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
@@ -31,7 +30,42 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private MessageGenerator<String> messageGenerator;
   private Class<? extends Partitioner> partitionerClass;
   private ZookeeperHelper helper;
+  private Properties properties;
 
+  private KafkaWriter(Builder builder) throws Exception {
+    zkURL = builder.zkURL;
+    topic = builder.topic;
+    partition = builder.partition;
+    messageGenerator = builder.messageGenerator;
+    partitionerClass = builder.partitionerClass;
+    properties = builder.properties;
+
+    helper = new ZookeeperHelper(zkURL);
+    connect();
+  }
+
+  private void connect() throws Exception {
+    Collection<HostPort> brokers;
+    String brokerString;
+
+    brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
+
+    Properties props = new Properties();
+
+    // 0, the producer never waits for an acknowledgement from the broker
+    // 1, the producer gets an acknowledgement after the leader replica has received the data.
+    // -1, the producer gets an acknowledgement after all in-sync replicas have received the data.
+    props.put("request.required.acks", "-1");
+    props.put("metadata.broker.list", brokerString);
+    props.put("serializer.class", "kafka.serializer.StringEncoder");
+    props.put("partitioner.class", partitionerClass.getName());
+
+    props.putAll(properties);
+
+    ProducerConfig config = new ProducerConfig(props);
+    producer = new Producer<String, String>(config);
+  }
 
   @Override
   public void run() {
@@ -67,30 +101,10 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   public void beforeRetry() {
     System.out.println("we have to retry");
     try {
-      reconnect();
+      connect();
     } catch (Exception e) {
       e.printStackTrace();
     }
-  }
-
-  private void reconnect() throws Exception {
-    Collection<HostPort> brokers;
-    String brokerString;
-
-    brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-    brokerString = CHAR_MATCHER.removeFrom(brokers.toString());
-
-    Properties props = new Properties();
-    props.put("metadata.broker.list", brokerString);
-    props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", partitionerClass.getName());
-    // 0, the producer never waits for an acknowledgement from the broker
-    // 1, the producer gets an acknowledgement after the leader replica has received the data.
-    // -1, the producer gets an acknowledgement after all in-sync replicas have received the data.
-    props.put("request.required.acks", "-1");
-
-    ProducerConfig config = new ProducerConfig(props);
-    producer = new Producer<String, String>(config);
   }
 
   @Override
@@ -110,6 +124,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
     // optional
     private int partition = -1;
+    private Properties properties = new Properties();
     private MessageGenerator<String> messageGenerator;
     public Class<? extends Partitioner> partitionerClass = kafka.producer.DefaultPartitioner.class;
 
@@ -124,6 +139,11 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
       return this;
     }
 
+    public Builder properties(Properties properties) {
+      this.properties = properties;
+      return this;
+    }
+
     public Builder messageGenerator(MessageGenerator<String> messageGenerator) {
       this.messageGenerator = messageGenerator;
       this.partitionerClass = messageGenerator.getPartitionerClass();
@@ -133,16 +153,5 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     public KafkaWriter build() throws Exception {
       return new KafkaWriter(this);
     }
-  }
-
-  private KafkaWriter(Builder builder) throws Exception {
-    zkURL = builder.zkURL;
-    topic = builder.topic;
-    partition = builder.partition;
-    messageGenerator = builder.messageGenerator;
-    partitionerClass = builder.partitionerClass;
-
-    helper = new ZookeeperHelper(zkURL);
-    reconnect();
   }
 }
