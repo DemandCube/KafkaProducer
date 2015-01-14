@@ -44,8 +44,8 @@ public class TestKafkaWriter {
   private static ZookeeperHelper helper;
 
 
-  private KafkaWriter writer;
-  private String topic;
+  private static KafkaWriter writer;
+  private static String topic;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -56,14 +56,15 @@ public class TestKafkaWriter {
     zkURL = cluster.getZkURL();
     helper = new ZookeeperHelper(zkURL);
     Thread.sleep(3000);
-  }
-
-  @Before
-  public void setUp() throws Exception {
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
 
     writer = new KafkaWriter.Builder(zkURL, topic).build();
+  }
+
+  @Before
+  public void setUp() throws Exception {
+  
   }
 
   @Test
