@@ -25,7 +25,7 @@ import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
-public abstract class TestWriter {
+public abstract class AbstractWriterTest {
 
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
@@ -101,11 +101,14 @@ public abstract class TestWriter {
 
   @Test
   public void testWriteToNonExistentTopic() throws Exception {
+      writeToNonExistentTopic();
+  }
+
+  public void writeToNonExistentTopic() throws Exception {
     try {
       initCluster(1, 1);
       Properties props = initProperties();
-      KafkaWriter writer = new KafkaWriter.Builder(zkURL, "someTopic").properties(props).partition(99)
-          .build();
+      KafkaWriter writer = new KafkaWriter.Builder(zkURL, "someTopic").properties(props).partition(99).build();
       writer.write("my message");
     } finally {
       cluster.shutdown();
@@ -142,7 +145,7 @@ public abstract class TestWriter {
         KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).properties(props).partition(i).build();
         writer.write("message" + i);
       }
-     
+
       for (int i = 0; i < 3; i++) {
         Thread.sleep(5000);
         KafkaReader reader = new KafkaReader(zkURL, topic, i);
@@ -154,7 +157,6 @@ public abstract class TestWriter {
         assertEquals(messages.size(), 1);
         assertEquals("message" + i, messages.get(0));
         reader.close();
-        
 
       }
 

@@ -4,7 +4,7 @@ package com.neverwinterdp.kafkaproducer.writer;
 import java.util.Properties;
 
 
-public class TestAsycWithAckWriter extends TestWriter {
+public class TestAsycWithAckWriter extends AbstractWriterTest {
 
   
   protected Properties initProperties() throws Exception{

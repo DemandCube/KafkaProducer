@@ -1,18 +1,23 @@
 package com.neverwinterdp.kafkaproducer.writer;
 
-
 import java.util.Properties;
 
+import kafka.common.FailedToSendMessageException;
 
-public class TestSycWithAckWriter extends TestWriter {
+import org.junit.Test;
 
-  
-  protected Properties initProperties() throws Exception{
+public class TestSycWithAckWriter extends AbstractWriterTest {
+
+  protected Properties initProperties() throws Exception {
     Properties props = new Properties();
     props.put("request.required.acks", "1");
-    props.put("producer.type", "async");    
+    props.put("producer.type", "sync");
     return props;
   }
-  
-  
+
+  @Test(expected = FailedToSendMessageException.class)
+  public void testWriteToNonExistentTopic() throws Exception {
+    writeToNonExistentTopic();
+  }
+
 }
