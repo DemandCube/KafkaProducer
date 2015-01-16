@@ -20,6 +20,7 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache.StartMode;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -267,18 +268,17 @@ public class ZookeeperHelper implements Closeable {
     }
   }
 
-  /*
-   * //Listener for node changes
-   * public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
-   * // in this example we will cache data. Notice that this is optional.
-   * logger.info("setTopicNodeListener. ");
-   * pathChildrenCache =
-   * new PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(),
-   * true);
-   * pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
-   * pathChildrenCache.getListenable().addListener(topicNodeListener);
-   * }
-   */
+
+  // Listener for node changes
+  public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
+    logger.info("setTopicNodeListener. ");
+    pathChildrenCache =
+        new PathChildrenCache(zkClient, topicInfoLocation + topicNodeListener.getTopic(),
+            true);
+    pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
+    pathChildrenCache.getListenable().addListener(topicNodeListener);
+  }
+
 
   @Override
   public void close() throws IOException {

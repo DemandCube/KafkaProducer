@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.neverwinterdp.kafkaproducer.messagegenerator.IntegerGenerator;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
+import com.neverwinterdp.kafkaproducer.util.Label;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 
@@ -179,14 +180,13 @@ public class TestKafkaWriter {
     assertEquals(count, messages.size());
   }
 
-
-
   /**
    * Start 6 writers to same topic/partition. Run them for a while, read from topic and partition.
    * 
    * @throws Exception
    */
   @Test
+  @Label("KW-PT1_1")
   public void testManyWriterThreads() throws Exception {
     List<String> messages = new ArrayList<>();
     // 6 writers, writing every 5 seconds for 30 seconds
@@ -215,6 +215,7 @@ public class TestKafkaWriter {
   }
 
   @Test(expected = FailedToSendMessageException.class)
+  @Label("KW-PT1_2")
   public void testWriteToNonExistentPartition() throws Exception {
     // create new topic, create writer to partition 20, expect exception
     topic = TestUtils.createRandomTopic();

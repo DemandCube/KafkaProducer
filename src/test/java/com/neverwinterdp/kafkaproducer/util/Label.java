@@ -1,7 +1,5 @@
 package com.neverwinterdp.kafkaproducer.util;
 
-public @interface TestLabel {
-
+public @interface Label {
   String value();
-
 }
