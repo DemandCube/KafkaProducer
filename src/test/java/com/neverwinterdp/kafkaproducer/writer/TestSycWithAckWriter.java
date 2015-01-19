@@ -8,6 +8,7 @@ import org.junit.Test;
 
 public class TestSycWithAckWriter extends AbstractWriterTest {
 
+  @Override
   protected Properties initProperties() throws Exception {
     Properties props = new Properties();
     props.put("request.required.acks", "1");

@@ -7,20 +7,27 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
+import kafka.consumer.Consumer;
+import kafka.consumer.ConsumerConfig;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.KafkaStream;
+import kafka.consumer.TopicFilter;
+import kafka.consumer.Whitelist;
 import kafka.javaapi.FetchResponse;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.OffsetResponse;
+import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.javaapi.consumer.SimpleConsumer;
+import kafka.message.MessageAndMetadata;
 import kafka.message.MessageAndOffset;
-
 import org.apache.log4j.Logger;
-
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
 import com.neverwinterdp.kafkaproducer.retry.RetryStrategy;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
@@ -42,6 +49,7 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
   private boolean hasNextOffset;
   private RetryStrategy retryStrategy;
   private long read;
+  private Properties props;
 
   public KafkaReader(String zkURL, String topic, int partition) {
     this.zkURL = zkURL;
@@ -53,6 +61,12 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
     initialize();
   }
 
+  public KafkaReader(String zkURL, String topic, int partition, Properties props) {
+    this(zkURL, topic, partition);
+    this.props = props;
+
+  }
+
   public void initialize() {
 
     helper = new ZookeeperHelper(zkURL);
@@ -60,13 +74,10 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
     try {
       leader = helper.getLeaderForTopicAndPartition(topic, partition);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Topic/partition " + topic + "/" + partition
-          + " does not exists");
+      throw new IllegalArgumentException("Topic/partition " + topic + "/" + partition + " does not exists");
     }
 
-    consumer =
-        new SimpleConsumer(leader.getHost(), leader.getPort(), TIMEOUT, BUFFER_SIZE,
-            getClientName());
+    consumer = new SimpleConsumer(leader.getHost(), leader.getPort(), TIMEOUT, BUFFER_SIZE, getClientName());
     firstRun = true;
   }
 
@@ -82,61 +93,82 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
 
   // One offset many messages
   public List<String> read() {
-    // while running, read, if read.size==0 wait then read again
-    List<String> messages = new LinkedList<String>();
-    do {
-      read = 0;
-      if (firstRun) {
-        currentOffset = getOffset(kafka.api.OffsetRequest.EarliestTime());
-      }
-      firstRun = false;
+    if (props != null) {
+      List<String> messages = new LinkedList<String>();
+      /* Properties props = new Properties(); */
 
-      FetchRequest req =
-          new FetchRequestBuilder().clientId(getClientName())
-              .addFetch(topic, partition, currentOffset, 100000).build();
+      props.put("zookeeper.connectiontimeout.ms", "1000000");
+      props.put("group.id", "test_group");
 
-      FetchResponse resp = consumer.fetch(req);
-      if (resp.hasError()) {
-        System.out.println("Error! " + resp.errorCode(topic, partition));
-      }
-      byte[] bytes = null;
-      long nextOffset = currentOffset;
-      for (MessageAndOffset messageAndOffset : resp.messageSet(topic, partition)) {
-        long messageOffset = messageAndOffset.offset();
-        if (messageOffset < currentOffset) {
-          System.out
-              .println("Found an old offset: " + messageOffset + " Expecting: " + currentOffset);
-          continue;
-        }
+      // Create the connection to the cluster
+      ConsumerConfig consumerConfig = new ConsumerConfig(props);
+      ConsumerConnector consumerConnector = Consumer.createJavaConsumerConnector(consumerConfig);
+      ConsumerIterator<byte[], byte[]> iterator;
+      TopicFilter topicFilter = new Whitelist(".*");
 
-        ByteBuffer payload = messageAndOffset.message().payload();
-        bytes = new byte[payload.limit()];
-        payload.get(bytes);
-        messages.add(new String(bytes));
-        logger.info("current offset " + currentOffset + " " + messageAndOffset.offset() + ": "
-            + new String(bytes));
-        nextOffset = messageAndOffset.nextOffset();
-      }
-      logger.info("currentOffset:" + currentOffset + " nextOffset:" + nextOffset);
-      if (currentOffset < nextOffset) {
-        hasNextOffset = true;
-      } else {
-        hasNextOffset = false;
-      }
-      currentOffset = nextOffset;
-
-      read = messages.size();
-      System.err.println("messages " + messages);
-      if (read == 0) {
-        try {
-          retryStrategy.incrementRetryCount();
-          retryStrategy.await();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
+      List<KafkaStream<byte[], byte[]>> streams = consumerConnector.createMessageStreamsByFilter(topicFilter);
+      KafkaStream<byte[], byte[]> stream = streams.get(0);
+      iterator = stream.iterator();
+      while (iterator.hasNext()) {
+        MessageAndMetadata<byte[], byte[]> kafkaMessage = iterator.next();
+        messages.add(new String(kafkaMessage.message()));
       }
       return messages;
-    } while (retryStrategy.shouldRetry());
+    } else {
+      // while running, read, if read.size==0 wait then read again
+      List<String> messages = new LinkedList<String>();
+      do {
+        read = 0;
+        if (firstRun) {
+          currentOffset = getOffset(kafka.api.OffsetRequest.EarliestTime());
+        }
+        firstRun = false;
+
+        FetchRequest req = new FetchRequestBuilder().clientId(getClientName())
+            .addFetch(topic, partition, currentOffset, 100000).build();
+
+        FetchResponse resp = consumer.fetch(req);
+        if (resp.hasError()) {
+          System.out.println("Error! " + resp.errorCode(topic, partition));
+        }
+        byte[] bytes = null;
+        long nextOffset = currentOffset;
+        for (MessageAndOffset messageAndOffset : resp.messageSet(topic, partition)) {
+          long messageOffset = messageAndOffset.offset();
+          if (messageOffset < currentOffset) {
+            System.out.println("Found an old offset: " + messageOffset + " Expecting: " + currentOffset);
+            continue;
+          }
+
+          ByteBuffer payload = messageAndOffset.message().payload();
+          bytes = new byte[payload.limit()];
+          payload.get(bytes);
+          messages.add(new String(bytes));
+          logger.info("current offset " + currentOffset + " " + messageAndOffset.offset() + ": " + new String(bytes));
+          nextOffset = messageAndOffset.nextOffset();
+        }
+        logger.info("currentOffset:" + currentOffset + " nextOffset:" + nextOffset);
+        if (currentOffset < nextOffset) {
+          hasNextOffset = true;
+        } else {
+          hasNextOffset = false;
+        }
+        currentOffset = nextOffset;
+
+        read = messages.size();
+        System.err.println("messages " + messages);
+        if (read == 0) {
+          try {
+            retryStrategy.incrementRetryCount();
+            retryStrategy.await();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+        return messages;
+      } while (retryStrategy.shouldRetry());
+    }
+
   }
 
   /**
@@ -147,22 +179,18 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
         || currentOffset < getOffset(kafka.api.OffsetRequest.LatestTime());
   }
 
-
   /**
-   * To get Earliest offset ask for kafka.api.OffsetRequest.EarliestTime(). To get latest offset ask
-   * for kafka.api.OffsetRequest.LatestTime()
+   * To get Earliest offset ask for kafka.api.OffsetRequest.EarliestTime(). To
+   * get latest offset ask for kafka.api.OffsetRequest.LatestTime()
    */
   private long getOffset(long time) {
-    Map<TopicAndPartition, PartitionOffsetRequestInfo> offsetInfo =
-        new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
-    offsetInfo
-        .put(new TopicAndPartition(topic, partition), new PartitionOffsetRequestInfo(time, 1));
-    OffsetResponse response =
-        consumer.getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
-            .CurrentVersion(), getClientName()));
+    Map<TopicAndPartition, PartitionOffsetRequestInfo> offsetInfo = new HashMap<TopicAndPartition, PartitionOffsetRequestInfo>();
+    offsetInfo.put(new TopicAndPartition(topic, partition), new PartitionOffsetRequestInfo(time, 1));
+    OffsetResponse response = consumer.getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
+        .CurrentVersion(), getClientName()));
     long[] endOffset = response.offsets(topic, partition);
     logger.info("endoffsets:" + Arrays.toString(endOffset) + " TIME:" + time);
-       
+
     return endOffset[0];
   }
 

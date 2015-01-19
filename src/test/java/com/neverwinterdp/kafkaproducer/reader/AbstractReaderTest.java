@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.reader;
 
 import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 import static org.junit.Assert.assertEquals;
@@ -10,7 +10,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
-import kafka.common.FailedToSendMessageException;
 import kafka.server.KafkaServer;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
@@ -24,14 +23,15 @@ import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
+import com.neverwinterdp.kafkaproducer.writer.KafkaWriter;
 
-public abstract class AbstractWriterTest {
+public abstract class AbstractReaderTest {
 
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
   }
 
-  protected static final Logger logger = Logger.getLogger(TestKafkaWriter.class);
+  protected static final Logger logger = Logger.getLogger(AbstractReaderTest.class);
   protected static EmbeddedCluster cluster;
   protected static ZookeeperHelper helper;
   protected static String zkURL;
@@ -71,6 +71,7 @@ public abstract class AbstractWriterTest {
     try {
       initCluster(0, 0);
       writeAndRead();
+
     } finally {
       // cluster.shutdown();
     }
@@ -82,6 +83,7 @@ public abstract class AbstractWriterTest {
     try {
       initCluster(1, 0);
       writeAndRead();
+
     } finally {
       cluster.shutdown();
     }
@@ -91,12 +93,8 @@ public abstract class AbstractWriterTest {
   public void testOnlyBrokerRunning() throws Exception {
     try {
       initCluster(0, 1);
-      String topic = TestUtils.createRandomTopic();
-      helper.createTopic(topic, 1, 0);
-      Properties props = initProperties();
-      KafkaWriter writer = new KafkaWriter.Builder(helper.getBrokersForTopic(topic).values(), topic).properties(props)
-          .build();
-      writer.write("my message");
+      writeAndRead();
+
     } finally {
       // cluster.shutdown();
     }
@@ -110,75 +108,12 @@ public abstract class AbstractWriterTest {
   public void writeToNonExistentTopic() throws Exception {
     try {
       initCluster(1, 1);
-      Properties props = initProperties();
-      KafkaWriter writer = new KafkaWriter.Builder(zkURL, "someTopic").properties(props).partition(99).build();
-      writer.write("my message");
-    } finally {
-      cluster.shutdown();
-    }
-  }
-
-  @Test
-  public void testWriteToWrongServer() throws Exception {
-
-    try {
-      initCluster(1, 2);
-      String topic = TestUtils.createRandomTopic();
-      helper.createTopic(topic, 2, 1);
-      Properties props = initProperties();
-      Collection<HostPort> brokers = helper.getBrokersForTopic(topic).values();
-      killLeader(topic);
-      brokers = helper.getBrokersForTopic(topic).values();
-      KafkaWriter writer = new KafkaWriter.Builder(brokers, topic).properties(props).build();
-      writer.write("my message");
-    } finally {
-      cluster.shutdown();
-    }
-  }
-
-  @Test
-  public void testCheckWritenDataExistOnPartition() throws Exception {
-    try {
-      initCluster(1, 1);
-      String topic = TestUtils.createRandomTopic();
-      helper.createTopic(topic, 3, 1);
-      // helper.addPartitions(topic, 2);
-      Properties props = initProperties();
-      for (int i = 0; i < 3; i++) {
-        KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).properties(props).partition(i).build();
-        writer.write("message" + i);
-      }
-
-      for (int i = 0; i < 3; i++) {
-        Thread.sleep(5000);
-        KafkaReader reader = new KafkaReader(zkURL, topic, i);
-
-        List<String> messages = new LinkedList<String>();
-        while (reader.hasNext()) {
-          messages.addAll(reader.read());
-        }
-        assertEquals(messages.size(), 1);
-        assertEquals("message" + i, messages.get(0));
-        reader.close();
-
-      }
+      writeAndRead();
 
     } finally {
       cluster.shutdown();
     }
   }
 
-  protected void killLeader(String topic) throws Exception {
-    // while writer threads are writing, kill the leader
-    HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
-    for (KafkaServer server : cluster.getKafkaServers()) {
-      if (leader.getHost().equals(server.config().hostName()) && leader.getPort() == server.config().port()) {
-        server.shutdown();
-        server.awaitShutdown();
-        System.out.println("Shutting down current leader --> " + server.config().hostName() + ":"
-            + server.config().port());
-      }
-    }
-  }
-
+  
 }
