@@ -17,9 +17,6 @@ public class TestSycNoAckWriter extends AbstractWriterTest {
     return props;
   }
   
-  @Test(expected=FailedToSendMessageException.class)
-  public void testWriteToNonExistentTopic() throws Exception {
-      writeToNonExistentTopic();
-  }
+
 
 }

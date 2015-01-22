@@ -32,7 +32,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private Properties properties;
   private Collection<HostPort> brokerList;
 
-  private KafkaWriter(Builder builder) throws Exception {
+  public KafkaWriter(Builder builder) throws Exception {
     zkURL = builder.zkURL;
     brokerList = builder.brokerList;
     if (zkURL != null) {
@@ -45,6 +45,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     properties = builder.properties;
     connect();
   }
+
 
   private void connect() throws Exception {
     Collection<HostPort> brokers;

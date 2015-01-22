@@ -43,28 +43,41 @@ public class EmbeddedCluster {
 
   public void start() throws Exception {
     for (int i = 0; i < numOfZkInstances; i++) {
-      // setup Zookeeper
-      String zkConnect = TestZKUtils.zookeeperConnect();
-      zkHosts.add(new HostPort(zkConnect));
-      EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
-      zookeeperServers.add(zkServer);
-      zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
+      addZookeeperServer();
     }
 
     for (int i = 0; i < numOfKafkaInstances; i++) {
-      // setup Broker
-      int port = TestUtils.choosePort();
-      Properties props = TestUtils.createBrokerConfig(i, port, true);
-
-      KafkaConfig config = new KafkaConfig(props);
-      Time mock = new MockTime();
-      System.out.println("auto.leader.rebalance.enable: " + config.autoLeaderRebalanceEnable());
-      System.out.println("controlled.shutdown.enabled " + config.controlledShutdownEnable());
-      KafkaServer kafkaServer = TestUtils.createServer(config, mock);
-      kafkaHosts.add(new HostPort("127.0.0.1", port));
-      kafkaServers.add(kafkaServer);
+      addKafkaServer(i);
     }
     System.out.println("Cluster created");
+  }
+  
+  public void addZookeeperServer(){
+ // setup Zookeeper
+    String zkConnect = TestZKUtils.zookeeperConnect();
+    zkHosts.add(new HostPort(zkConnect));
+    EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
+    zookeeperServers.add(zkServer);
+    zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
+  }
+  
+  private void addKafkaServer(int id){
+ // setup Broker
+    int port = TestUtils.choosePort();
+    Properties props = TestUtils.createBrokerConfig(id, port, true);
+
+    KafkaConfig config = new KafkaConfig(props);
+    Time mock = new MockTime();
+    System.out.println("auto.leader.rebalance.enable: " + config.autoLeaderRebalanceEnable());
+    System.out.println("controlled.shutdown.enabled " + config.controlledShutdownEnable());
+    KafkaServer kafkaServer = TestUtils.createServer(config, mock);
+    kafkaHosts.add(new HostPort("127.0.0.1", port));
+    kafkaServers.add(kafkaServer);
+  }
+  
+  public void addKafkaServer(){
+    numOfKafkaInstances++;
+    addKafkaServer(numOfKafkaInstances);
   }
 
   public void shutdown() {
