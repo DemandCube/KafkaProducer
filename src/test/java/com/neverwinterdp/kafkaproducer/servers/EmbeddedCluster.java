@@ -20,7 +20,7 @@ import org.I0Itec.zkclient.ZkClient;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 
 public class EmbeddedCluster {
-
+  int brokerId = 0;
   private int numOfZkInstances;
   private int numOfKafkaInstances;
   ZkClient zkClient;
@@ -54,7 +54,7 @@ public class EmbeddedCluster {
     for (int i = 0; i < numOfKafkaInstances; i++) {
       // setup Broker
       int port = TestUtils.choosePort();
-      Properties props = TestUtils.createBrokerConfig(i, port, true);
+      Properties props = TestUtils.createBrokerConfig(brokerId++, port, true);
 
       KafkaConfig config = new KafkaConfig(props);
       Time mock = new MockTime();
@@ -65,6 +65,29 @@ public class EmbeddedCluster {
       kafkaServers.add(kafkaServer);
     }
     System.out.println("Cluster created");
+  }
+
+  public void startAdditionalBrokers(int numBrokers) {
+
+    try {
+      for (int i = 0; i < numBrokers; i++) {
+        // setup Broker
+        int port = TestUtils.choosePort();
+
+        Properties props = TestUtils.createBrokerConfig(brokerId++, port, true);
+
+        KafkaConfig config = new KafkaConfig(props);
+        Time mock = new MockTime();
+        System.out.println("auto.leader.rebalance.enable: " + config.autoLeaderRebalanceEnable());
+        System.out.println("controlled.shutdown.enabled " + config.controlledShutdownEnable());
+        KafkaServer kafkaServer = TestUtils.createServer(config, mock);
+        kafkaHosts.add(new HostPort("127.0.0.1", port));
+        kafkaServers.add(kafkaServer);
+      }
+      System.out.println("current count of brokers " + kafkaServers.size());
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   public void shutdown() {

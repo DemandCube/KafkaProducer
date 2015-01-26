@@ -5,13 +5,18 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
 import kafka.admin.AdminUtils;
+import kafka.admin.PreferredReplicaLeaderElectionCommand;
+import kafka.admin.ReassignPartitionsCommand;
+import kafka.common.TopicAndPartition;
 import kafka.utils.ZKStringSerializer$;
 import kafka.utils.ZkUtils;
 
@@ -26,6 +31,9 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
+
+import scala.collection.Seq;
+import scala.collection.mutable.Buffer;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -309,5 +317,38 @@ public class ZookeeperHelper implements Closeable {
     ZkClient client = new ZkClient(zkConnectString, 10000);
     client.deleteRecursive(ZkUtils.getTopicPath(topic));
     client.close();
+  }
+
+  /**
+   * Re-balance a topic. The topic will be reassigned to the remainingBrokers
+   * Thus limit remainingBrokers.size to replication factor required.
+   */
+  public void rebalanceTopic(String topic, int partition, List<Object> remainingBrokers) {
+    System.out.println("remaining brokers " + remainingBrokers);
+    ZkClient client = new ZkClient(zkConnectString, 10000, 10000, ZKStringSerializer$.MODULE$);
+    try {
+      TopicAndPartition topicAndPartition = new TopicAndPartition(topic, partition);
+
+      Buffer<Object> seqs = scala.collection.JavaConversions.asScalaBuffer(remainingBrokers);
+      Map<TopicAndPartition, Seq<Object>> map = new HashMap<>();
+      map.put(topicAndPartition, seqs);
+      scala.collection.mutable.Map<TopicAndPartition, Seq<Object>> x =
+          scala.collection.JavaConversions.asScalaMap(map);
+      ReassignPartitionsCommand command = new ReassignPartitionsCommand(client, x);
+      boolean success = command.validatePartition(client, topic, partition);
+      System.out.println("is valid " + success);
+      System.out.println("reasign " + command.reassignPartitions());
+      System.out.println("check again " + command.validatePartition(client, topic, partition));
+
+      scala.collection.mutable.Set<TopicAndPartition> topicsAndPartitions =
+          scala.collection.JavaConversions.asScalaSet(Collections.singleton(topicAndPartition));
+      PreferredReplicaLeaderElectionCommand commands =
+          new PreferredReplicaLeaderElectionCommand(client, topicsAndPartitions);
+      commands.moveLeaderToPreferredReplica();
+      Thread.sleep(5000);
+      client.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 }
