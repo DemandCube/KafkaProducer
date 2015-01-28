@@ -140,15 +140,17 @@ public class TestEmbeddedCluster {
 
   @Test
   /**
-   * Start 3 kafka brokers, create a topic with replication factor=3, kill leader, start new brokers, re-balance, count brokers for topic. They should be 3.
+   * Start 3 kafka brokers,
+   * create a topic with replication factor=3, 
+   * kill leader, 
+   * start new brokers,
+   * re-balance, 
+   * count brokers for topic. 
+   *   
+   * They should be 3.
    * */
   public void testKafkaRebalance() throws Exception {
-    // start 3 kafkas
-    // create topic with replication 3
-    // get count of brokers for topics
-    // kill leader
-    // start a new broker
-    // count brokers for topic
+
     int kafkaBrokers = 3;
     int replicationFactor = 3;
     EmbeddedCluster cluster = new EmbeddedCluster(1, kafkaBrokers);
@@ -172,7 +174,7 @@ public class TestEmbeddedCluster {
       for (KafkaServer server : cluster.getKafkaServers()) {
         remainingBrokers.add(server.config().brokerId());
       }
-     
+
       helper.rebalanceTopic(topic, 0, remainingBrokers.subList(0, replicationFactor));
 
       brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
@@ -194,10 +196,10 @@ public class TestEmbeddedCluster {
     try {
       cluster.start();
 
-   
+
       ZookeeperHelper helper = new ZookeeperHelper(cluster.getZkURL());
       helper.createTopic(topic, 2, 2);
-  
+
       helper.close();
       kafkaPort = Iterables.get(cluster.getKafkaHosts(), 0).getPort();
 

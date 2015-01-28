@@ -48,8 +48,9 @@ public class EmbeddedCluster {
       zkHosts.add(new HostPort(zkConnect));
       EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
       zookeeperServers.add(zkServer);
-      zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
     }
+
+    zkClient = new ZkClient(zookeeperServers.get(0).connectString(), 30000, 30000);
 
     for (int i = 0; i < numOfKafkaInstances; i++) {
       // setup Broker
