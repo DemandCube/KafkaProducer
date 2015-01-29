@@ -74,5 +74,4 @@ public class Main {
     }
     logger.info(scheduler.shutdownNow());
   }
-
 }

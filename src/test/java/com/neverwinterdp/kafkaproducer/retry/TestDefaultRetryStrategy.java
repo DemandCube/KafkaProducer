@@ -43,6 +43,17 @@ public class TestDefaultRetryStrategy {
     assertTrue(retryStrategy.shouldRetry());
   }
 
+  // should retry on null exception
+  @Test
+  public void testRetryCreateNullException() {
+    retryStrategy = new DefaultRetryStrategy(1, 0, null);
+    assertTrue(retryStrategy.shouldRetry());
+
+    retryStrategy = new DefaultRetryStrategy(0, 0, null);
+    assertFalse(retryStrategy.shouldRetry());
+
+  }
+
   // should retry 5 times
   @Test
   public void testRetryMaxTimes() {
@@ -70,7 +81,7 @@ public class TestDefaultRetryStrategy {
     for (int i = 0; i < maxRetries * 2; i++) {
       retryStrategy.errorOccured(new NullPointerException());
     }
-    
+
     retryStrategy.shouldRetry(true);
     assertTrue(retryStrategy.shouldRetry());
   }
@@ -78,7 +89,7 @@ public class TestDefaultRetryStrategy {
   @Test
   public void testAwait() throws InterruptedException {
     long now = System.currentTimeMillis();
-    retryStrategy.await(waitDuration);
+    retryStrategy.await();
     long after = System.currentTimeMillis();
 
     assertTrue(after >= now + waitDuration);

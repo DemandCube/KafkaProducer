@@ -3,12 +3,18 @@ package com.neverwinterdp.kafkaproducer.util;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 import kafka.admin.PreferredReplicaLeaderElectionCommand;
 import kafka.common.TopicAndPartition;
+import kafka.producer.KeyedMessage;
+import kafka.producer.Producer;
+import kafka.producer.ProducerConfig;
 import kafka.utils.ZKStringSerializer$;
 
 import org.I0Itec.zkclient.ZkClient;
@@ -88,5 +94,30 @@ public class TestUtils {
         new PreferredReplicaLeaderElectionCommand(zkClient, x);
     command.moveLeaderToPreferredReplica();
     zkClient.close();
+  }
+
+  public static void writeRandomData(String topic, int kafkaPort, int writes) {
+    Properties props = kafka.utils.TestUtils.getProducerConfig("localhost:" + kafkaPort);
+    ProducerConfig config = new ProducerConfig(props);
+    Producer<String, byte[]> producer = new Producer<>(config);
+    List<KeyedMessage<String, byte[]>> messages = new ArrayList<>();
+    for (int i = 0; i < writes; i++) {
+      KeyedMessage<String, byte[]> data = new KeyedMessage<>(topic, String.valueOf(i).getBytes());
+      messages.add(data);
+      System.out.println("wrote " + i);
+    }
+    producer.send(scala.collection.JavaConversions.asScalaBuffer(messages));
+
+    producer.close();
+
+  }
+
+  public static java.util.Set<Integer> createRange(int start, int count) {
+
+    java.util.Set<Integer> ints = new LinkedHashSet<Integer>();
+    for (int i = start; i < count; ++i) {
+      ints.add(i);
+    }
+    return ints;
   }
 }

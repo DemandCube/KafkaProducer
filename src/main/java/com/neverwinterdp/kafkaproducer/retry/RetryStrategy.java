@@ -7,7 +7,7 @@ public interface RetryStrategy {
 
   long getWaitDuration();
 
-  void await(long waitDuration) throws InterruptedException;
+  void await() throws InterruptedException;
 
   void reset();
 
