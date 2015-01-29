@@ -148,11 +148,9 @@ public class TestKafkaProducer {
     RunnableRetryer retryer;
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter.Builder(zkURL, topic).build();
-      retryer =
-          new RunnableRetryer(
-              new DefaultRetryStrategy(5, 1000, FailedToSendMessageException.class), writer);
-      final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
+      retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 1000, FailedToSendMessageException.class), writer);
+      final ScheduledFuture<?> timeHandle =scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
+      
       scheduler.schedule(new Runnable() {
         public void run() {
           timeHandle.cancel(false);
@@ -173,10 +171,13 @@ public class TestKafkaProducer {
     System.out.println("we have writen everything.");
     kafka.utils.TestUtils.waitUntilMetadataIsPropagated(
         scala.collection.JavaConversions.asScalaBuffer(servers.getKafkaServers()), topic, 0, 5000L);
+    //fixed
+    Thread.sleep(5000);
     messages = TestUtils.readMessages(topic, zkURL);
 
     // int expected = writers * runDuration / delay;
     int expected = RunnableRetryer.getCounter().get();
+    
     assertEquals(expected, messages.size());
   }
 

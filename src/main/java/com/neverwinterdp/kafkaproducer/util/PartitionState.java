@@ -4,11 +4,11 @@ import java.util.Collections;
 import java.util.Set;
 
 class PartitionState {
-  private int controller_epoch;
-  private Set<Integer> isr;
-  private int leader;
-  private int leader_epoch;
-  private int version;
+  int controller_epoch;
+  Set<Integer> isr;
+  int leader;
+  int leader_epoch;
+  int version;
 
   public PartitionState() {
     super();

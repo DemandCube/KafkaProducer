@@ -1,7 +1,5 @@
 package com.neverwinterdp.kafkaproducer.messagegenerator;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.neverwinterdp.kafkaproducer.partitioner.OddEvenPartitioner;
 
 import kafka.producer.Partitioner;
@@ -9,26 +7,26 @@ import kafka.producer.Partitioner;
 // Used for tests in conjunction with the OddEvenPartitioner
 public class IntegerGenerator implements MessageGenerator<String> {
 
-  private AtomicInteger currNum;
+  private int currNum;
   private Class<? extends Partitioner> partitionerClass = OddEvenPartitioner.class;
 
   public IntegerGenerator() {
-    currNum = new AtomicInteger(0);
+    currNum = 0;
   }
 
   @Override
   public String next() {
-    return Integer.toString(currNum.incrementAndGet());
+    return Integer.toString(currNum++);
   }
 
   @Override
   public boolean hasNext() {
-    return currNum.get() < Integer.MAX_VALUE;
+    return currNum < Integer.MAX_VALUE;
   }
 
   @Override
   public void remove() {
-    currNum.decrementAndGet();
+    currNum--;
   }
 
   @Override

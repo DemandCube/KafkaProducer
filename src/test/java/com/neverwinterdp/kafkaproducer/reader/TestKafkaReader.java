@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
+import com.neverwinterdp.kafkaproducer.util.TestLabel;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 import com.neverwinterdp.kafkaproducer.writer.TestKafkaWriter;
@@ -56,16 +57,16 @@ public class TestKafkaReader {
     printRunningThreads();
     // one zk, 1 kafka
     cluster = new EmbeddedCluster(1, 1);
-    // cluster.start();
-    // zkURL = cluster.getZkURL();
-    // helper = new ZookeeperHelper(zkURL);
+    cluster.start();
+    zkURL = cluster.getZkURL();
+    helper = new ZookeeperHelper(zkURL);
     Thread.sleep(3000);
   }
 
   @Before
   public void setUp() throws Exception {
-    // topic = TestUtils.createRandomTopic();
-    // helper.createTopic(topic, 1, 1);
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
 
     reader = new KafkaReader(zkURL, topic, 0);
   }
@@ -106,16 +107,16 @@ public class TestKafkaReader {
 
   @Test
   public void testReadAllMessages() throws Exception {
-    // int kafkaPort = helper.getLeaderForTopicAndPartition(topic, 0).getPort();
+    int kafkaPort = helper.getLeaderForTopicAndPartition(topic, 0).getPort();
     int count = 10;
     Set<Integer> expected = TestUtils.createRange(0, count);
-    // TestUtils.writeRandomData(topic, kafkaPort, count);
+    TestUtils.writeRandomData(topic, kafkaPort, count);
     List<String> messages = new LinkedList<String>();
     while (reader.hasNext()) {
       messages.addAll(reader.read());
     }
-    // Set<Integer> actual = new TreeSet<>(TestUtils.convert(messages));
-    assertEquals(expected, new TreeSet<>());
+    Set<Integer> actual = new TreeSet<>(TestUtils.convert(messages));
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -175,6 +176,7 @@ public class TestKafkaReader {
   }
 
   @Test
+  @TestLabel("KW-PT1_1")
   public void testHasNoNext() throws Exception {
     System.out.println("this is waht matter most");
     assertFalse(reader.hasNext());
