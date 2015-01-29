@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 import static org.junit.Assert.assertEquals;
@@ -17,6 +17,8 @@ import com.neverwinterdp.kafkaproducer.reader.KafkaReader;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
+import com.neverwinterdp.kafkaproducer.writer.KafkaWriter;
+import com.neverwinterdp.kafkaproducer.writer.KafkaWriter.Builder;
 
 public class StabilityTests {
 

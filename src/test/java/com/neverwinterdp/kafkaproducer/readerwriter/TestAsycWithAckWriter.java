@@ -1,10 +1,10 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.readerwriter;
 
 
 import java.util.Properties;
 
 
-public class TestAsycWithAckWriter extends AbstractWriterTest {
+public class TestAsycWithAckWriter extends AbstractReaderWriterTest {
 
   
   protected Properties initProperties() throws Exception{

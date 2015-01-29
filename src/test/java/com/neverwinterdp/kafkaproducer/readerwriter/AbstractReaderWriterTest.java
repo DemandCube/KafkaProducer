@@ -1,7 +1,8 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.internal.runners.statements.Fail;
 
 import com.neverwinterdp.kafkaproducer.reader.KafkaReader;
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
@@ -31,8 +33,11 @@ import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
+import com.neverwinterdp.kafkaproducer.writer.KafkaWriter;
+import com.neverwinterdp.kafkaproducer.writer.TestKafkaWriter;
+import com.neverwinterdp.kafkaproducer.writer.KafkaWriter.Builder;
 
-public abstract class AbstractWriterTest {
+public abstract class AbstractReaderWriterTest {
 
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
@@ -181,6 +186,7 @@ public abstract class AbstractWriterTest {
       writer.write("message");
       KafkaReader reader;
       reader = new KafkaReader(zkURL, topic, 0);
+      Thread.sleep(5000);
       List<String> messages = reader.read();
       assertEquals(messages.size(), 1);
       assertEquals(messages.get(0), "message");
@@ -244,11 +250,12 @@ public abstract class AbstractWriterTest {
 
         while (reader.hasNext()) {
           messages.addAll(reader.read());
+          Thread.sleep(3000);
         }
         assertEquals(messages.size(), 10000);
 
         for (int j = 0; j < 10000; j++) {
-          assertEquals(messages.get(i), "message" + i);
+          assertEquals(messages.get(j), "message" + j);
         }
         messages.clear();
         reader.close();
@@ -263,6 +270,7 @@ public abstract class AbstractWriterTest {
   public void testWriteTenThousandMessagesToFiveTopicsTowPartition() throws Exception {
     try {
       initCluster(1, 1);
+
       String[] topics = new String[5];
       for (int i = 0; i < 5; i++)
         topics[i] = TestUtils.createRandomTopic();
@@ -289,7 +297,7 @@ public abstract class AbstractWriterTest {
           assertEquals(messages.size(), 5000);
 
           for (int j = 0; j < 5000; j++) {
-            assertEquals(messages.get(i), "message" + i);
+            assertEquals(messages.get(j), "message" + j);
           }
 
           reader.close();
@@ -308,37 +316,37 @@ public abstract class AbstractWriterTest {
   public void testRetryUntilKafkaStart() throws Exception {
     try {
       initCluster(1, 0);
+      Properties props = initProperties();
       List<String> messages = new ArrayList<>();
 
-      // 6 writers, writing every 2 seconds for 300 seconds
-      int delay = 2;
-      int runDuration = 20;
-      RunnableRetryer retryer;
+      final RunnableRetryer retryer;
       final String topic = TestUtils.createRandomTopic();
 
-      KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).build();
-      retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
-      final ScheduledFuture<?> timeHandle = scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
-
-      scheduler.scheduleWithFixedDelay(new Runnable() {
+      KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).properties(props).build();
+      retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 1000, FailedToSendMessageException.class), writer);
+      
+      new Thread(new Runnable() {
 
         @Override
         public void run() {
-          cluster.addKafkaServer();
-          helper.createTopic(topic, 1, 1);
+          while (true) {
+            if (retryer.getRetryStrategy().getRetries() == 1) {
+              cluster.addKafkaServer();
+              helper.createTopic(topic, 1, 1);
+              break;
+            }
+          }
 
         }
-      }, 0, 3, TimeUnit.SECONDS);
+      }).start();
 
-      scheduler.schedule(new Runnable() {
-        public void run() {
-          timeHandle.cancel(false);
-          scheduler.shutdown();
-        }
-      }, runDuration, TimeUnit.SECONDS);
-
+      
+      retryer.run();
+      
+ 
+      Thread.sleep(3000);
       messages = TestUtils.readMessages(topic, zkURL);
-      // int expected = writers * runDuration / delay;
+
       int expected = RunnableRetryer.getCounter().get();
 
       assertEquals(expected, messages.size());
@@ -379,7 +387,7 @@ public abstract class AbstractWriterTest {
           scheduler.shutdown();
         }
       }, runDuration, TimeUnit.SECONDS);
-
+      Thread.sleep(3000);
       messages = TestUtils.readMessages(topic, zkURL);
       // int expected = writers * runDuration / delay;
       int expected = RunnableRetryer.getCounter().get();
@@ -399,27 +407,24 @@ public abstract class AbstractWriterTest {
       RunnableRetryer retryer;
       final String topic = TestUtils.createRandomTopic();
       helper.createTopic(topic, 1, 3);
-      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic);
+      Properties props = initProperties();
+      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).properties(props);
       KafkaWriter writer = new KafkaWriter(builder) {
-        public void run()  {
+        public void run() {
           for (int i = 0; i < 10000; i++) {
             try {
-              write("message"+i);
-              if(i== 9)
-                   killLeader(topic);
+              write("message" + i);
+              if (i == 9)
+                killLeader(topic);
             } catch (Exception e) {
               System.out.println("Exception " + e);
-              
+
             }
           }
         }
 
       };
       retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
-      retryer =
-          new RunnableRetryer(
-              new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
-      
       retryer.run();
       messages = TestUtils.readMessages(topic, zkURL);
 
@@ -428,6 +433,169 @@ public abstract class AbstractWriterTest {
       cluster.shutdown();
     }
 
+  }
+
+  @Test
+  public void testKillLeaderAndRebalance() throws Exception {
+
+    int kafkaBrokers = 4;
+
+    initCluster(1, kafkaBrokers);
+
+    final String topic = TestUtils.createRandomTopic();
+    try {
+
+      helper.createTopic(topic, 1, 3);
+
+      final HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
+      Properties props = initProperties();
+      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).properties(props);
+      KafkaWriter writer = new KafkaWriter(builder) {
+        public void run() {
+          for (int i = 0; i < 10000; i++) {
+            write("message" + i);
+
+            if (i == 10) {
+              new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                  try {
+                    int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                    assertEquals(3, brokersForTopic);
+
+                    killLeader(leader);
+
+                    brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                    assertEquals(2, brokersForTopic);
+
+                    List<Object> remainingBrokers = new ArrayList<>();
+                    for (KafkaServer server : cluster.getKafkaServers()) {
+                      remainingBrokers.add(server.config().brokerId());
+                    }
+
+                    helper.rebalanceTopic(topic, 0, remainingBrokers);
+                    brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                    assertEquals(3, brokersForTopic);
+
+                  } catch (Exception e) {
+
+                  }
+
+                }
+              }).start();
+            }
+          }
+        }
+
+      };
+      RunnableRetryer retryer = new RunnableRetryer(
+          new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
+      retryer.run();
+
+      Thread.sleep(10000);
+      KafkaReader reader;
+      reader = new KafkaReader(zkURL, topic, 0);
+      List<String> messages = new LinkedList<String>();
+      int k = 0;
+      while (reader.hasNext()) {
+        messages = reader.read();
+        System.out.println("messages " + messages + " size : " + messages.size());
+
+        for (int j = 0; j < messages.size(); j++) {
+          assertEquals(messages.get(j), "message" + k);
+          k++;
+        }
+
+      }
+
+      messages.clear();
+      reader.close();
+    } finally {
+      helper.close();
+      cluster.shutdown();
+    }
+  }
+
+  @Test
+  public void testKillLeaderRebalnceAndRestart() throws Exception {
+
+    int kafkaBrokers = 4;
+    final int replicationFactor = 3;
+    initCluster(1, kafkaBrokers);
+
+    final String topic = TestUtils.createRandomTopic();
+    try {
+      helper.createTopic(topic, 1, replicationFactor);
+      final HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
+      Properties props = initProperties();
+      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).properties(props);
+      KafkaWriter writer = new KafkaWriter(builder) {
+        public void run() {
+          for (int i = 0; i < 10000; i++) {
+            write("message" + i);
+            if (i == 10) {
+              new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                  try {
+                    KafkaServer deadLeader = killLeader(leader);
+                    List<Object> remainingBrokers = new ArrayList<>();
+                    for (KafkaServer server : cluster.getKafkaServers()) {
+                      remainingBrokers.add(server.config().brokerId());
+                    }
+                    // before rebalance the shouldn't be equal
+                    int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                    assertEquals(replicationFactor - 1, brokersForTopic);
+                    helper.rebalanceTopic(topic, 0, remainingBrokers);
+                    brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                    deadLeader.startup();
+                    cluster.getKafkaServers().add(deadLeader);
+
+                    remainingBrokers.clear();
+                    for (KafkaServer server : cluster.getKafkaServers()) {
+                      remainingBrokers.add(server.config().brokerId());
+                    }
+                    helper.rebalanceTopic(topic, 0, remainingBrokers);
+
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
+                }
+              }).start();
+            }
+
+          }
+        }
+
+      };
+      RunnableRetryer retryer = new RunnableRetryer(
+          new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
+      retryer.run();
+      Thread.sleep(10000);
+      KafkaReader reader;
+      reader = new KafkaReader(zkURL, topic, 0);
+      List<String> messages = new LinkedList<String>();
+
+      int k = 0;
+      while (reader.hasNext()) {
+        messages = reader.read();
+        System.out.println("messages " + messages + " size : " + messages.size());
+
+        for (int j = 0; j < messages.size(); j++) {
+          assertEquals(messages.get(j), "message" + k);
+          k++;
+        }
+
+      }
+      messages.clear();
+      reader.close();
+    } finally {
+      helper.close();
+      cluster.shutdown();
+    }
   }
 
   protected void killLeader(String topic) throws Exception {
@@ -441,6 +609,26 @@ public abstract class AbstractWriterTest {
             + server.config().port());
       }
     }
+  }
+
+  protected KafkaServer killLeader(
+      HostPort leader) throws Exception {
+    HostPort killedLeader = null;
+    KafkaServer kafkaServer = null;
+    for (KafkaServer server : cluster.getKafkaServers()) {
+      if (leader.getHost().equals(server.config().hostName()) && leader.getPort() == server.config().port()) {
+        killedLeader = new HostPort(server.config().hostName(), server.config().port());
+        server.shutdown();
+        server.awaitShutdown();
+
+        kafkaServer = server;
+        System.out.println("Shutting down current leader --> " + server.config().hostName() + ":"
+            + server.config().port() + " id " + server.config().brokerId());
+      }
+    }
+
+    cluster.getKafkaServers().remove(kafkaServer);
+    return kafkaServer;
   }
 
 }

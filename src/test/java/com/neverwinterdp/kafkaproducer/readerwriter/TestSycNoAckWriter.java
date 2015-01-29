@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import java.util.Properties;
 
@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 
-public class TestSycNoAckWriter extends AbstractWriterTest {
+public class TestSycNoAckWriter extends AbstractReaderWriterTest {
 
   protected Properties initProperties() throws Exception {
     Properties props = new Properties();

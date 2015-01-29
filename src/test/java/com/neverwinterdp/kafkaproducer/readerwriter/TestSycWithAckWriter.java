@@ -1,4 +1,4 @@
-package com.neverwinterdp.kafkaproducer.writer;
+package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import java.util.Properties;
 
@@ -6,7 +6,7 @@ import kafka.common.FailedToSendMessageException;
 
 import org.junit.Test;
 
-public class TestSycWithAckWriter extends AbstractWriterTest {
+public class TestSycWithAckWriter extends AbstractReaderWriterTest {
 
   @Override
   protected Properties initProperties() throws Exception {

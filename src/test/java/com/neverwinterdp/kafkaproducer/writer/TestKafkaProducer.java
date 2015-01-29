@@ -171,10 +171,13 @@ public class TestKafkaProducer {
     System.out.println("we have writen everything.");
     kafka.utils.TestUtils.waitUntilMetadataIsPropagated(
         scala.collection.JavaConversions.asScalaBuffer(servers.getKafkaServers()), topic, 0, 5000L);
+    //fixed
+    Thread.sleep(5000);
     messages = TestUtils.readMessages(topic, zkURL);
 
     // int expected = writers * runDuration / delay;
     int expected = RunnableRetryer.getCounter().get();
+    
     assertEquals(expected, messages.size());
   }
 

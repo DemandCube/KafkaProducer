@@ -26,7 +26,7 @@ public class EmbeddedCluster {
   ZkClient zkClient;
   private Set<HostPort> zkHosts;
   private Set<HostPort> kafkaHosts;
-
+  int brokerId = 0;
   private List<EmbeddedZookeeper> zookeeperServers;
   private List<KafkaServer> kafkaServers;
 
@@ -45,26 +45,27 @@ public class EmbeddedCluster {
     for (int i = 0; i < numOfZkInstances; i++) {
       addZookeeperServer();
     }
+    if (numOfZkInstances > 0)
+      zkClient = new ZkClient(zookeeperServers.get(0).connectString(), 30000, 30000);
 
     for (int i = 0; i < numOfKafkaInstances; i++) {
-      addKafkaServer(i);
+      addKafkaServer();
     }
     System.out.println("Cluster created");
   }
-  
-  public void addZookeeperServer(){
- // setup Zookeeper
+
+  public void addZookeeperServer() {
+    // setup Zookeeper
     String zkConnect = TestZKUtils.zookeeperConnect();
     zkHosts.add(new HostPort(zkConnect));
     EmbeddedZookeeper zkServer = new EmbeddedZookeeper(zkConnect);
     zookeeperServers.add(zkServer);
-    zkClient = new ZkClient(zkServer.connectString(), 30000, 30000);
   }
-  
-  private void addKafkaServer(int id){
- // setup Broker
+
+  public void addKafkaServer() {
+    // setup Broker
     int port = TestUtils.choosePort();
-    Properties props = TestUtils.createBrokerConfig(id, port, true);
+    Properties props = TestUtils.createBrokerConfig(brokerId++, port, true);
 
     KafkaConfig config = new KafkaConfig(props);
     Time mock = new MockTime();
@@ -74,10 +75,13 @@ public class EmbeddedCluster {
     kafkaHosts.add(new HostPort("127.0.0.1", port));
     kafkaServers.add(kafkaServer);
   }
-  
-  public void addKafkaServer(){
-    numOfKafkaInstances++;
-    addKafkaServer(numOfKafkaInstances);
+
+  public void startAdditionalBrokers(int numBrokers) {
+
+    for (int i = 0; i < numBrokers; i++) {
+      addKafkaServer();
+    }
+
   }
 
   public void shutdown() {
