@@ -3,7 +3,9 @@ package com.neverwinterdp.kafkaproducer.readerwriter;
 import java.util.Properties;
 
 public class TestSycWithAckWriter extends AbstractReaderWriterTest {
-
+  {
+      tolerance = 1;
+  }
   @Override
   protected Properties initProperties() throws Exception {
     Properties props = new Properties();

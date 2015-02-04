@@ -162,7 +162,8 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   @Override
   public void close() throws IOException {
-    producer.close();
+    if(producer!=null)
+      producer.close();
     if (helper != null)
       helper.close();
   }

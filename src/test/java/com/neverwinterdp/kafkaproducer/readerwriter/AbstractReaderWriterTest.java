@@ -33,6 +33,7 @@ import com.neverwinterdp.kafkaproducer.writer.TestKafkaWriter;
 
 public abstract class AbstractReaderWriterTest {
 
+  
   static {
     System.setProperty("log4j.configuration", "file:src/test/resources/log4j.properties");
   }
@@ -47,7 +48,7 @@ public abstract class AbstractReaderWriterTest {
     printRunningThreads();
   }
 
-  private float tolerance = 0.95f;
+  protected float tolerance = 0.95f;
 
   protected void initCluster(int numOfZkInstances, int numOfKafkaInstances) throws Exception {
     cluster = new EmbeddedCluster(numOfZkInstances, numOfKafkaInstances);
@@ -420,7 +421,7 @@ public abstract class AbstractReaderWriterTest {
       retryer.run();
       messages = TestUtils.readMessages(topic, zkURL);
       System.out.println("messages.size() " + messages.size());
-      assertTrue( messages.size() > 10000 * tolerance);
+      assertTrue( messages.size() >= 10000 * tolerance);
     } finally {
       cluster.shutdown();
     }
@@ -492,7 +493,7 @@ public abstract class AbstractReaderWriterTest {
         
       }
       System.out.println("Total is  " + total);
-      assertTrue(total > 10000 * tolerance);
+      assertTrue(total >= 10000 * tolerance);
       messages.clear();
       reader.close();
     } finally {
@@ -576,7 +577,7 @@ public abstract class AbstractReaderWriterTest {
         
       }
       System.out.println("Total is  " + total);
-      assertTrue(total > 10000 * tolerance);
+      assertTrue(total >= 10000 * tolerance);
       messages.clear();
       reader.close();
     } finally {
