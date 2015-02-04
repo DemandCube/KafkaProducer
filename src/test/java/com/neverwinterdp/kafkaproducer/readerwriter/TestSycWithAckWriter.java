@@ -2,10 +2,6 @@ package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import java.util.Properties;
 
-import kafka.common.FailedToSendMessageException;
-
-import org.junit.Test;
-
 public class TestSycWithAckWriter extends AbstractReaderWriterTest {
 
   @Override
@@ -16,7 +12,7 @@ public class TestSycWithAckWriter extends AbstractReaderWriterTest {
     return props;
   }
 
-  @Test(expected = FailedToSendMessageException.class)
+  //@Test(expected = FailedToSendMessageException.class)
   public void testWriteToNonExistentTopic() throws Exception {
     writeToNonExistentTopic();
   }
