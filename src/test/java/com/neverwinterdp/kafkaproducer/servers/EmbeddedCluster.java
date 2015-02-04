@@ -74,6 +74,8 @@ public class EmbeddedCluster {
     KafkaServer kafkaServer = TestUtils.createServer(config, mock);
     kafkaHosts.add(new HostPort("127.0.0.1", port));
     kafkaServers.add(kafkaServer);
+    
+    
   }
 
   public void startAdditionalBrokers(int numBrokers) {

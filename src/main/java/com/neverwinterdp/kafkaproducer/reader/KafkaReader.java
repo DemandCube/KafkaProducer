@@ -126,7 +126,7 @@ public class KafkaReader implements Callable<List<String>>, Closeable {
       currentOffset = nextOffset;
 
       read = messages.size();
-      System.err.println("messages " + messages);
+     // System.err.println("messages " + messages);
       if (read == 0) {
         try {
           retryStrategy.incrementRetryCount();

@@ -6,8 +6,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
@@ -18,7 +16,6 @@ import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 import com.neverwinterdp.kafkaproducer.writer.KafkaWriter;
-import com.neverwinterdp.kafkaproducer.writer.KafkaWriter.Builder;
 
 public class StabilityTests {
 

@@ -13,4 +13,6 @@ public class TestAsycWithAckWriter extends AbstractReaderWriterTest {
     props.put("producer.type", "async");    
     return props;
   }
+  
+
 }
