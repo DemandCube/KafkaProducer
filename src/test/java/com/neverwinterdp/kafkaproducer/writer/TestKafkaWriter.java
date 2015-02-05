@@ -59,7 +59,7 @@ public class TestKafkaWriter {
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
 
-    writer = new KafkaWriter.Builder(zkURL, topic).build();
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(0).build();
   }
 
   @Before
@@ -147,88 +147,6 @@ public class TestKafkaWriter {
     assertEquals(expected, actual);
 
   }
-
-
-
-  /**
-   * Write 100 messages to a non existent topic. If no Exception thrown then we are good.
-   */
-  @Test
-  public void testWriteToNonExistentTopic() {
-    topic = TestUtils.createRandomTopic();
-    int partition = new Random().nextInt(1);
-    try {
-      writer = new KafkaWriter.Builder(zkURL, topic).partition(partition).build();
-      for (int i = 0; i < 5; i++) {
-        writer.run();
-      }
-      fail("How could we write to a non-existent partition? " + topic);
-    } catch (Exception e) {
-      assertTrue("We should not be able to write to " + topic, true);
-    }
-  }
-
-
-  /**
-   * Start 6 writers to same topic/partition. Run them for a while, read from topic and partition.
-   * 
-   * @throws Exception
-   */
-  @Test
-  public void testManyWriterThreads() throws Exception {
-    List<String> messages = new ArrayList<>();
-    // 6 writers, writing every 5 seconds for 30 seconds
-    int writers = 6;
-    int delay = 5;
-    int runDuration = 30;
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
-    for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter.Builder(zkURL, topic).build();
-      final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
-
-      scheduler.schedule(new Runnable() {
-        public void run() {
-          timeHandle.cancel(false);
-        }
-      }, runDuration, TimeUnit.SECONDS);
-    }
-    // Sleep a bit for all writers to finish writing
-    Thread.sleep((runDuration * 1500) + 2000);
-    messages = TestUtils.readMessages(topic, zkURL);
-    int min = writers * (((runDuration) / delay) + 1);
-    assertTrue(min < messages.size());
-    scheduler.shutdownNow();
-
-  }
-
- @Test
-  public void testWriteToNonExistentPartition() throws Exception {
-    // create new topic, create writer to partition 20, expect exception
-    topic = TestUtils.createRandomTopic();
-    helper.createTopic(topic, 1, 1);
-    writer = new KafkaWriter.Builder(zkURL, topic).partition(20).build();
-    for (int i = 0; i < 100; i++) {
-      writer.write(UUID.randomUUID().toString());
-    }
-  }
-
-  @Test
-  public void testBrokerListConstructor() throws Exception {
-    // create new topic, create writer to partition 20, expect exception
-    topic = TestUtils.createRandomTopic();
-    Collection<HostPort> brokerList = cluster.getKafkaHosts();
-    logger.info("testWriteToPartitionOne. ");
-    try {
-      writer = new KafkaWriter.Builder(brokerList, topic).build();
-      for (int i = 0; i < 100; i++) {
-        writer.write("my message");
-      }
-    } catch (Exception e) {
-      fail("couldnt write to kafka " + e);
-    }
-  }
-
 
 
   @After

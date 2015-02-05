@@ -90,6 +90,8 @@ public class TestKafkaProducer {
     int expected = RunnableRetryer.getCounter().get();
 
     assertEquals(expected, messages.size());
+    
+    RunnableRetryer.resetCounter();
   }
 
   /**
@@ -131,55 +133,9 @@ public class TestKafkaProducer {
     // int expected = writers * runDuration / delay;
     int expected = RunnableRetryer.getCounter().get();
     assertEquals(expected, messages.size());
+    RunnableRetryer.resetCounter();
   }
 
-  /**
-   * Have 5 threads write to a topic partition, while writing kill leader. Check if all messages
-   * were writen to kafka despite dead leader.
-   */
-  @Test
-  public void testKillAllBrokers() throws Exception {
-
-    List<String> messages = new ArrayList<>();
-    // 6 writers, writing every 2 seconds for 300 seconds
-    int delay = 2;
-    int runDuration = 20;
-
-    RunnableRetryer retryer;
-    for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter.Builder(zkURL, topic).build();
-      retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 1000, FailedToSendMessageException.class), writer);
-      final ScheduledFuture<?> timeHandle =scheduler.scheduleWithFixedDelay(retryer, 0, delay, TimeUnit.SECONDS);
-      
-      scheduler.schedule(new Runnable() {
-        public void run() {
-          timeHandle.cancel(false);
-        }
-      }, runDuration, TimeUnit.SECONDS);
-    }
-
-    for (int i = 0; i < kafkaBrokers; i++) {
-      killLeader();
-    }
-
-    Thread.sleep(3000);
-    startAllBrokers();
-
-
-    System.out.println("sleeping for " + runDuration * 3000 + " ms to wait all writers to write.");
-    Thread.sleep(runDuration * 3000);
-    System.out.println("we have writen everything.");
-    kafka.utils.TestUtils.waitUntilMetadataIsPropagated(
-        scala.collection.JavaConversions.asScalaBuffer(servers.getKafkaServers()), topic, 0, 5000L);
-    //fixed
-    Thread.sleep(5000);
-    messages = TestUtils.readMessages(topic, zkURL);
-
-    // int expected = writers * runDuration / delay;
-    int expected = RunnableRetryer.getCounter().get();
-    
-    assertEquals(expected, messages.size());
-  }
 
   /**
    * @throws Exception
