@@ -57,6 +57,11 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
       String brokerString;
       if (zkURL != null) {
         brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+        try{
+          leader = helper.getLeaderForTopicAndPartition(topic, partition);
+      }catch(Exception e){
+        
+      }
       } else {
         brokers = brokerList;
       }
@@ -103,17 +108,22 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
       }
       try{
           newLeader = helper.getLeaderForTopicAndPartition(topic, partition);
+
+            
       }catch(Exception e){
-        
+        e.printStackTrace();
       }
+      
       if (newBrokers.size() != brokers.size()) {
         connect();
+        
       } else {
         if (leader !=null && newLeader !=null && !newLeader.toString().equals(leader.toString())) {
           connect();
-          leader = newLeader;
+          
         }
       }
+      leader = newLeader;
       
     } catch (Exception e) {
       e.printStackTrace();

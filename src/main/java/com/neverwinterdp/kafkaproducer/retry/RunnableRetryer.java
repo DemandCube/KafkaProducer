@@ -25,7 +25,7 @@ public class RunnableRetryer implements Runnable {
     retryStrategy.reset();
     do {
       try {
-        System.out.println("beforeRetry ");
+        
         runnable.beforeStart();       
         runnable.run();
         isSuccess = true;
