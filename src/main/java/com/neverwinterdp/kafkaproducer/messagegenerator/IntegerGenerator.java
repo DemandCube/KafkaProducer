@@ -18,7 +18,7 @@ public class IntegerGenerator implements MessageGenerator<String> {
 
   @Override
   public String next() {
-    return Integer.toString(currNum.incrementAndGet());
+    return Integer.toString(currNum.getAndIncrement());
   }
 
   @Override
