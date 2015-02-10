@@ -2,11 +2,19 @@ package com.neverwinterdp.kafkaproducer.writer;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 
 import kafka.common.FailedToSendMessageException;
 import kafka.javaapi.producer.Producer;
+
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+
 import kafka.producer.DefaultPartitioner;
 import kafka.producer.KeyedMessage;
 import kafka.producer.Partitioner;
@@ -25,6 +33,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
 
   private Producer<String, String> producer;
+  private KafkaProducer producer2;
   private String zkURL;
   private String topic;
   private int partition;
@@ -52,16 +61,18 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   }
 
   private void connect() {
+    System.out.println("connect , old brokers " + brokers);
     try {
 
       String brokerString;
       if (zkURL != null) {
         brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-        try{
+        System.out.println("connect , new brokers " + brokers);
+        try {
           leader = helper.getLeaderForTopicAndPartition(topic, partition);
-      }catch(Exception e){
-        
-      }
+        } catch (Exception e) {
+
+        }
       } else {
         brokers = brokerList;
       }
@@ -79,6 +90,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
         // have received the data.
         props.put("request.required.acks", "-1");
         props.put("metadata.broker.list", brokerString);
+        props.put("bootstrap.servers", brokerString);
         props.put("serializer.class", "kafka.serializer.StringEncoder");
         props.put("partitioner.class", partitionerClass.getName());
 
@@ -86,45 +98,45 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
         ProducerConfig config = new ProducerConfig(props);
         producer = new Producer<String, String>(config);
+        producer2 = new KafkaProducer(props);
         connected = true;
       }
 
     } catch (Exception e) {
       connected = false;
       e.printStackTrace();
-      
+
     }
 
   }
 
-  private void checkBrockersChange() {
+  private void checkBrokersChange() {
     Collection<HostPort> newBrokers;
-    HostPort newLeader = null ;
+    HostPort newLeader = null;
     try {
       if (zkURL != null)
         newBrokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
       else {
         newBrokers = brokerList;
       }
-      try{
-          newLeader = helper.getLeaderForTopicAndPartition(topic, partition);
+      try {
+        newLeader = helper.getLeaderForTopicAndPartition(topic, partition);
 
-            
-      }catch(Exception e){
+      } catch (Exception e) {
         e.printStackTrace();
       }
-      
+
       if (newBrokers.size() != brokers.size()) {
         connect();
-        
+
       } else {
-        if (leader !=null && newLeader !=null && !newLeader.toString().equals(leader.toString())) {
+        if (leader != null && newLeader != null && !newLeader.toString().equals(leader.toString())) {
           connect();
-          
+
         }
       }
       leader = newLeader;
-      
+
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -143,8 +155,12 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     }
   }
 
-  public void write(String message) {
-    checkBrockersChange();
+
+
+  public List<String> failed = new ArrayList<String>();
+public boolean noError=true;
+  public void write(final String message) {
+
     String key;
     if (partition != -1) {
       // we already know what partition to write to
@@ -152,8 +168,23 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     } else {
       key = message;
     }
-    KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
-    producer.send(data);
+    //KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
+    // producer.send(data);
+    ProducerRecord record = new ProducerRecord(topic, partition, key.getBytes(), message.getBytes());
+    producer2.send(record, new Callback() {
+
+      @Override
+      public void onCompletion(RecordMetadata metadata, Exception exception) {
+
+        if (exception != null) {
+              noError =false;
+              failed.add(message);
+              //write(message);
+
+        }
+      }
+    });
+
   }
 
   public void setPartitionerClass(Class<? extends Partitioner> clazz) {
@@ -172,7 +203,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   @Override
   public void close() throws IOException {
-    if(producer!=null)
+    if (producer != null)
       producer.close();
     if (helper != null)
       helper.close();

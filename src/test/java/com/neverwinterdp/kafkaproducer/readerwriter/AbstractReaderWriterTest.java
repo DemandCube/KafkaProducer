@@ -5,7 +5,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -42,7 +44,7 @@ public abstract class AbstractReaderWriterTest {
   protected static EmbeddedCluster cluster;
   protected static ZookeeperHelper helper;
   protected static String zkURL;
-
+  private int sended=0;
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     printRunningThreads();
@@ -338,7 +340,7 @@ public abstract class AbstractReaderWriterTest {
       KafkaReader reader = new KafkaReader(zkURL, topic, 0);
       messages = reader.read();
       reader.close();
-      System.err.println("messages size " + messages.size());
+      System.out.println("messages size " + messages.size());
       assertEquals(1, messages.size());
 
     } catch (Exception e) {
@@ -381,7 +383,7 @@ public abstract class AbstractReaderWriterTest {
       KafkaReader reader = new KafkaReader(zkURL, topic, 0);
       messages = reader.read();
       reader.close();
-      System.err.println("messages size " + messages.size());
+      System.out.println("messages size " + messages.size());
       assertEquals(1, messages.size());
 
     } catch (Exception e) {
@@ -441,14 +443,17 @@ public abstract class AbstractReaderWriterTest {
       final HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
       Properties props = initProperties();
       KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).partition(0).properties(props);
-      
+     
       KafkaWriter writer = new KafkaWriter(builder) {
         public void run() {
           for (int i = 0; i < 10000; i++) {
-            write("message" + i);
-            if (i == 9999) {
-              System.err.println("End of send" );
+            if(noError)
+              write("" + i);
+            else{
+              sended =i;
+              break;
             }
+          
             if (i == 10) {
               new Thread(new Runnable() {
 
@@ -456,16 +461,17 @@ public abstract class AbstractReaderWriterTest {
                 public void run() {
 
                   try {
+                    System.out.println("start attack ");
                     killLeader(leader);
                     List<Object> remainingBrokers = new ArrayList<>();
                     for (KafkaServer server : cluster.getKafkaServers()) {
                       remainingBrokers.add(server.config().brokerId());
                     }
-                    System.err.println("Leader killed  " );
+                    System.out.println("Leader killed  " );
                     int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
                     assertEquals(replicationFactor - 1, brokersForTopic);
                     helper.rebalanceTopic(topic, 0, remainingBrokers);
-                    System.err.println("rebalance done " );
+                    System.out.println("rebalance done " );
 
                   } catch (Exception e) {
                     e.printStackTrace();
@@ -478,22 +484,28 @@ public abstract class AbstractReaderWriterTest {
         }
 
       };
+      
       RunnableRetryer retryer = new RunnableRetryer(
           new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
       retryer.run();
-      Thread.sleep(10000);
+      Thread.sleep(60000);
       KafkaReader reader;
       reader = new KafkaReader(zkURL, topic, 0);
       List<String> messages = new LinkedList<String>();
-
-      int total = 0;
+      System.out.print("received messages");
+      int received = 0;
       while (reader.hasNext()) {
+       
         messages = reader.read();
-        total += messages.size();
+        System.out.print(messages);
+        received += messages.size();
         
-      }
-      System.out.println("Total is  " + total);
-      assertTrue(total >= 10000 * tolerance);
+      } 
+      System.out.println("\nfailed messges "+ writer.failed.toString());
+      Collections.sort(writer.failed);
+      System.out.println("sended " +sended + " received is  " + received + " failed " + writer.failed.size());
+      System.out.println("lost  " +(sended - (received + writer.failed.size())));
+      assertEquals(sended ,(received + writer.failed.size()));
       messages.clear();
       reader.close();
     } finally {
@@ -521,7 +533,7 @@ public abstract class AbstractReaderWriterTest {
           for (int i = 0; i < 10000; i++) {
             write("message" + i);
             if (i == 9999) {
-              System.err.println("End of send" );
+              System.out.println("End of send" );
             }
             if (i == 10) {
               new Thread(new Runnable() {
@@ -535,22 +547,22 @@ public abstract class AbstractReaderWriterTest {
                     for (KafkaServer server : cluster.getKafkaServers()) {
                       remainingBrokers.add(server.config().brokerId());
                     }
-                    System.err.println("Leader killed  " );
+                    System.out.println("Leader killed  " );
                     // before rebalance the shouldn't be equal
                     int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
                     assertEquals(replicationFactor - 1, brokersForTopic);
                     helper.rebalanceTopic(topic, 0, remainingBrokers);
-                    System.err.println("rebalance done " );
+                    System.out.println("rebalance done " );
                     brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
                     deadLeader.startup();
                     cluster.getKafkaServers().add(deadLeader);
-                    System.err.println("dead leader started" );
+                    System.out.println("dead leader started" );
                     remainingBrokers.clear();
                     for (KafkaServer server : cluster.getKafkaServers()) {
                       remainingBrokers.add(server.config().brokerId());
                     }
                     helper.rebalanceTopic(topic, 0, remainingBrokers);
-                    System.err.println("Rebalance again done " );
+                    System.out.println("Rebalance again done " );
                   } catch (Exception e) {
                     e.printStackTrace();
                   }
