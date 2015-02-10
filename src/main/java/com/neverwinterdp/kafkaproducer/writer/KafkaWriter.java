@@ -45,7 +45,8 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private boolean connected;
   private Collection<HostPort> brokers;
   private HostPort leader;
-
+  public List<String> failed = new ArrayList<String>();
+  private List<Long> offsets = new ArrayList<Long>();
   public KafkaWriter(Builder builder) throws Exception {
     zkURL = builder.zkURL;
     brokerList = builder.brokerList;
@@ -157,8 +158,6 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
 
 
-  public List<String> failed = new ArrayList<String>();
-public boolean noError=true;
   public void write(final String message) {
 
     String key;
@@ -168,19 +167,29 @@ public boolean noError=true;
     } else {
       key = message;
     }
-    //KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
+    // KeyedMessage<String, String> data = new KeyedMessage<String,
+    // String>(topic, key, message);
     // producer.send(data);
     ProducerRecord record = new ProducerRecord(topic, partition, key.getBytes(), message.getBytes());
     producer2.send(record, new Callback() {
 
       @Override
       public void onCompletion(RecordMetadata metadata, Exception exception) {
-
+        //
         if (exception != null) {
-              noError =false;
-              failed.add(message);
-              //write(message);
+          failed.add(message);
+          // write(message);
 
+        } else {
+          if (metadata == null) {
+            failed.add(message);
+          } else {
+            if (offsets.contains(metadata.offset())) {
+              failed.add(message);
+            } else {
+              offsets.add(metadata.offset());
+            }
+          }
         }
       }
     });

@@ -447,13 +447,10 @@ public abstract class AbstractReaderWriterTest {
       KafkaWriter writer = new KafkaWriter(builder) {
         public void run() {
           for (int i = 0; i < 10000; i++) {
-            if(noError)
+            
               write("" + i);
-            else{
               sended =i;
-              break;
-            }
-          
+
             if (i == 10) {
               new Thread(new Runnable() {
 
@@ -488,7 +485,7 @@ public abstract class AbstractReaderWriterTest {
       RunnableRetryer retryer = new RunnableRetryer(
           new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
       retryer.run();
-      Thread.sleep(60000);
+      Thread.sleep(10000);
       KafkaReader reader;
       reader = new KafkaReader(zkURL, topic, 0);
       List<String> messages = new LinkedList<String>();
@@ -504,8 +501,7 @@ public abstract class AbstractReaderWriterTest {
       System.out.println("\nfailed messges "+ writer.failed.toString());
       Collections.sort(writer.failed);
       System.out.println("sended " +sended + " received is  " + received + " failed " + writer.failed.size());
-      System.out.println("lost  " +(sended - (received + writer.failed.size())));
-      assertEquals(sended ,(received + writer.failed.size()));
+      assertEquals(sended ,((received -1)+ writer.failed.size()));
       messages.clear();
       reader.close();
     } finally {
