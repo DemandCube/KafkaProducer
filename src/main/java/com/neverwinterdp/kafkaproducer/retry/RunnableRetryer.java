@@ -25,10 +25,13 @@ public class RunnableRetryer implements Runnable {
     retryStrategy.reset();
     do {
       try {
+        
+        runnable.beforeStart();       
         runnable.run();
         isSuccess = true;
         retryStrategy.shouldRetry(false);
         counter.incrementAndGet();
+        
       } catch (Exception ex) {
         logger.debug("We got an exception: " + ex.toString());
         retryStrategy.errorOccured(ex);

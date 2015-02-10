@@ -44,8 +44,8 @@ public class TestKafkaWriter {
   private static ZookeeperHelper helper;
 
 
-  private KafkaWriter writer;
-  private String topic;
+  private static KafkaWriter writer;
+  private static String topic;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -56,25 +56,30 @@ public class TestKafkaWriter {
     zkURL = cluster.getZkURL();
     helper = new ZookeeperHelper(zkURL);
     Thread.sleep(3000);
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
+
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(0).build();
   }
 
   @Before
   public void setUp() throws Exception {
-    topic = TestUtils.createRandomTopic();
-    helper.createTopic(topic, 1, 1);
-
-    writer = new KafkaWriter.Builder(zkURL, topic).build();
+  
   }
 
   @Test
-  public void testWriteToPartitionZero() {
+  public void testWriteToPartitionZero() throws Exception {
     logger.info("testWriteToPartitionZero. ");
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
     try {
       for (int i = 0; i < 100; i++) {
         writer.write("my message");
       }
       logger.info("We got here");
     } catch (Exception e) {
+      e.printStackTrace();
       fail("couldnt write to kafka " + e);
     }
   }
@@ -82,6 +87,8 @@ public class TestKafkaWriter {
   @Test
   public void testWriteToPartitionOne() {
     logger.info("testWriteToPartitionOne. ");
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
     helper.addPartitions(topic, 2);
     try {
       writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
@@ -99,6 +106,9 @@ public class TestKafkaWriter {
   @Test
   public void testWriteMessageOrder() throws Exception {
     int count = 20;
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
     String randomMessage = UUID.randomUUID().toString();
     List<String> messages = new LinkedList<>();
     LinkedList<String> buffer = new LinkedList<>();
@@ -121,6 +131,8 @@ public class TestKafkaWriter {
     // odd numbers to one partition, even to other
     // Read all see if we get all integers
     int count = 20;
+    topic = TestUtils.createRandomTopic();
+    helper.createTopic(topic, 1, 1);
     Set<Integer> expected = TestUtils.createRange(0, count);
     helper.addPartitions(topic, 2);
     writer = new KafkaWriter.Builder(zkURL, topic).messageGenerator(new IntegerGenerator()).build();
@@ -135,111 +147,6 @@ public class TestKafkaWriter {
     assertEquals(expected, actual);
 
   }
-
-
-
-  /**
-   * Write 100 messages to a non existent topic. If no Exception thrown then we are good.
-   */
-  @Test
-  public void testWriteToNonExistentTopic() {
-    topic = TestUtils.createRandomTopic();
-    int partition = new Random().nextInt(1);
-    try {
-      writer = new KafkaWriter.Builder(zkURL, topic).partition(partition).build();
-      for (int i = 0; i < 5; i++) {
-        writer.run();
-      }
-      fail("How could we write to a non-existent partition? " + topic);
-    } catch (Exception e) {
-      assertTrue("We should not be able to write to " + topic, true);
-    }
-  }
-
-  /**
-   * Write 2000 messages to kafka, count number of messages read. They should be equal
-   */
-  @Test
-  public void testCountMessages() {
-    List<String> messages = new LinkedList<>();
-    int count = 2000;
-    try {
-      String randomMessage;
-      for (int i = 0; i < count; i++) {
-        randomMessage = UUID.randomUUID().toString();
-        writer.write(randomMessage);
-      }
-
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    logger.debug("finished writing to kafka");
-    messages = TestUtils.readMessages(topic, zkURL);
-    logger.debug("Messages " + messages);
-    assertEquals(count, messages.size());
-  }
-
-
-
-  /**
-   * Start 6 writers to same topic/partition. Run them for a while, read from topic and partition.
-   * 
-   * @throws Exception
-   */
-  @Test
-  public void testManyWriterThreads() throws Exception {
-    List<String> messages = new ArrayList<>();
-    // 6 writers, writing every 5 seconds for 30 seconds
-    int writers = 6;
-    int delay = 5;
-    int runDuration = 30;
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(writers);
-    for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter.Builder(zkURL, topic).build();
-      final ScheduledFuture<?> timeHandle =
-          scheduler.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
-
-      scheduler.schedule(new Runnable() {
-        public void run() {
-          timeHandle.cancel(false);
-        }
-      }, runDuration, TimeUnit.SECONDS);
-    }
-    // Sleep a bit for all writers to finish writing
-    Thread.sleep((runDuration * 1500) + 2000);
-    messages = TestUtils.readMessages(topic, zkURL);
-    int expected = writers * (((runDuration) / delay) + 1);
-    assertEquals(expected, messages.size());
-    scheduler.shutdownNow();
-
-  }
-
-  @Test(expected = FailedToSendMessageException.class)
-  public void testWriteToNonExistentPartition() throws Exception {
-    // create new topic, create writer to partition 20, expect exception
-    topic = TestUtils.createRandomTopic();
-    writer = new KafkaWriter.Builder(zkURL, topic).partition(20).build();
-    for (int i = 0; i < 100; i++) {
-      writer.write(UUID.randomUUID().toString());
-    }
-  }
-
-  @Test
-  public void testBrokerListConstructor() throws Exception {
-    // create new topic, create writer to partition 20, expect exception
-    topic = TestUtils.createRandomTopic();
-    Collection<HostPort> brokerList = cluster.getKafkaHosts();
-    logger.info("testWriteToPartitionOne. ");
-    try {
-      writer = new KafkaWriter.Builder(brokerList, topic).build();
-      for (int i = 0; i < 100; i++) {
-        writer.write("my message");
-      }
-    } catch (Exception e) {
-      fail("couldnt write to kafka " + e);
-    }
-  }
-
 
 
   @After

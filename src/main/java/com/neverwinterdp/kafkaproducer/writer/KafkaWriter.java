@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Properties;
 
+import kafka.common.FailedToSendMessageException;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.DefaultPartitioner;
 import kafka.producer.KeyedMessage;
@@ -14,6 +15,7 @@ import kafka.producer.ProducerConfig;
 import com.google.common.collect.ImmutableSet;
 import com.neverwinterdp.kafkaproducer.messagegenerator.DefaultMessageGenerator;
 import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
+import com.neverwinterdp.kafkaproducer.retry.RetryException;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
@@ -31,8 +33,11 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private ZookeeperHelper helper;
   private Properties properties;
   private Collection<HostPort> brokerList;
+  private boolean connected;
+  private Collection<HostPort> brokers;
+  private HostPort leader;
 
-  private KafkaWriter(Builder builder) throws Exception {
+  public KafkaWriter(Builder builder) throws Exception {
     zkURL = builder.zkURL;
     brokerList = builder.brokerList;
     if (zkURL != null) {
@@ -46,34 +51,88 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     connect();
   }
 
-  private void connect() throws Exception {
-    Collection<HostPort> brokers;
-    String brokerString;
-    if (zkURL != null)
-      brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-    else {
-      brokers = brokerList;
+  private void connect() {
+    try {
+
+      String brokerString;
+      if (zkURL != null) {
+        brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+        try{
+          leader = helper.getLeaderForTopicAndPartition(topic, partition);
+      }catch(Exception e){
+        
+      }
+      } else {
+        brokers = brokerList;
+      }
+      if (brokers.size() == 0) {
+        connected = false;
+      } else {
+        brokerString = brokers.toString().replace("[", "").replace("]", "");
+        Properties props = new Properties();
+
+        // 0, the producer never waits for an acknowledgement from the broker
+        // 1, the producer gets an acknowledgement after the leader replica
+        // has
+        // received the data.
+        // -1, the producer gets an acknowledgement after all in-sync replicas
+        // have received the data.
+        props.put("request.required.acks", "-1");
+        props.put("metadata.broker.list", brokerString);
+        props.put("serializer.class", "kafka.serializer.StringEncoder");
+        props.put("partitioner.class", partitionerClass.getName());
+
+        props.putAll(properties);
+
+        ProducerConfig config = new ProducerConfig(props);
+        producer = new Producer<String, String>(config);
+        connected = true;
+      }
+
+    } catch (Exception e) {
+      connected = false;
+      e.printStackTrace();
+      
     }
-    brokerString = brokers.toString().replace("[", "").replace("]", "");
 
-    Properties props = new Properties();
+  }
 
-    // 0, the producer never waits for an acknowledgement from the broker
-    // 1, the producer gets an acknowledgement after the leader replica has received the data.
-    // -1, the producer gets an acknowledgement after all in-sync replicas have received the data.
-    props.put("request.required.acks", "-1");
-    props.put("metadata.broker.list", brokerString);
-    props.put("serializer.class", "kafka.serializer.StringEncoder");
-    props.put("partitioner.class", partitionerClass.getName());
+  private void checkBrockersChange() {
+    Collection<HostPort> newBrokers;
+    HostPort newLeader = null ;
+    try {
+      if (zkURL != null)
+        newBrokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
+      else {
+        newBrokers = brokerList;
+      }
+      try{
+          newLeader = helper.getLeaderForTopicAndPartition(topic, partition);
 
-    props.putAll(properties);
-
-    ProducerConfig config = new ProducerConfig(props);
-    producer = new Producer<String, String>(config);
+            
+      }catch(Exception e){
+        e.printStackTrace();
+      }
+      
+      if (newBrokers.size() != brokers.size()) {
+        connect();
+        
+      } else {
+        if (leader !=null && newLeader !=null && !newLeader.toString().equals(leader.toString())) {
+          connect();
+          
+        }
+      }
+      leader = newLeader;
+      
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void run() {
+
     System.out.println(Thread.currentThread().getName() + " writing");
     String message = messageGenerator.next();
     try {
@@ -84,14 +143,13 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     }
   }
 
-
   public void write(String message) {
+    checkBrockersChange();
     String key;
     if (partition != -1) {
       // we already know what partition to write to
       key = Integer.toString(partition);
-    }
-    else {
+    } else {
       key = message;
     }
     KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, key, message);
@@ -105,19 +163,17 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   @Override
   public void beforeRetry() {
     System.out.println("we have to retry");
-    try {
-      connect();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    connect();
   }
 
   @Override
-  public void afterRetry() {}
+  public void afterRetry() {
+  }
 
   @Override
   public void close() throws IOException {
-    producer.close();
+    if(producer!=null)
+      producer.close();
     if (helper != null)
       helper.close();
   }
@@ -173,5 +229,15 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     public KafkaWriter build() throws Exception {
       return new KafkaWriter(this);
     }
+  }
+
+  @Override
+  public void beforeStart() {
+
+    System.out.println("Check connection");
+    if (!connected) {
+      throw new FailedToSendMessageException("Kafka server is not running", new Throwable());
+    }
+
   }
 }
