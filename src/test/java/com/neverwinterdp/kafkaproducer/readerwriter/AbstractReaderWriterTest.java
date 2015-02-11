@@ -44,13 +44,12 @@ public abstract class AbstractReaderWriterTest {
   protected static EmbeddedCluster cluster;
   protected static ZookeeperHelper helper;
   protected static String zkURL;
-  private int sended=0;
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     printRunningThreads();
   }
 
-  protected float tolerance = 0.95f;
 
   protected void initCluster(int numOfZkInstances, int numOfKafkaInstances) throws Exception {
     cluster = new EmbeddedCluster(numOfZkInstances, numOfKafkaInstances);
@@ -134,7 +133,7 @@ public abstract class AbstractReaderWriterTest {
       Collection<HostPort> brokers = helper.getBrokersForTopic(topic).values();
       killLeader(topic);
       brokers = helper.getBrokersForTopic(topic).values();
-      KafkaWriter writer = new KafkaWriter.Builder(brokers, topic).properties(props).build();
+      KafkaWriter writer = new KafkaWriter.Builder(brokers, topic).partition(0).properties(props).build();
       writer.write("my message");
     } finally {
       cluster.shutdown();
@@ -318,7 +317,7 @@ public abstract class AbstractReaderWriterTest {
       final RunnableRetryer retryer;
       final String topic = TestUtils.createRandomTopic();
 
-      KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).properties(props).build();
+      KafkaWriter writer = new KafkaWriter.Builder(zkURL, topic).partition(0).properties(props).build();
 
       retryer = new RunnableRetryer(new DefaultRetryStrategy(10, 3000, FailedToSendMessageException.class), writer);
       new Thread(new Runnable() {
@@ -403,7 +402,7 @@ public abstract class AbstractReaderWriterTest {
       final String topic = TestUtils.createRandomTopic();
       helper.createTopic(topic, 1, 3);
       Properties props = initProperties();
-      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).properties(props);
+      KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).partition(0).properties(props);
       KafkaWriter writer = new KafkaWriter(builder) {
         public void run() {
           for (int i = 0; i < 10000; i++) {
@@ -421,9 +420,23 @@ public abstract class AbstractReaderWriterTest {
       };
       retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
       retryer.run();
-      messages = TestUtils.readMessages(topic, zkURL);
-      System.out.println("messages.size() " + messages.size());
-      assertTrue( messages.size() >= 10000 * tolerance);
+      Thread.sleep(10000);
+      System.out.print("received messages");
+      int received = 0;
+      KafkaReader reader = new KafkaReader(zkURL, topic, 0);
+      while (reader.hasNext()) {
+       
+        messages = reader.read();
+        System.out.print(messages);
+        received += messages.size();
+        
+      } 
+      System.out.println("\nfailed messges "+ writer.failed.toString());
+      Collections.sort(writer.failed);
+      System.out.println(" received is  " + received + " failed " + writer.failed.size());
+      assertEquals(10000 ,((received )+ writer.failed.size()));
+      reader.close();
+      messages.clear();
     } finally {
       cluster.shutdown();
     }
@@ -446,11 +459,8 @@ public abstract class AbstractReaderWriterTest {
      
       KafkaWriter writer = new KafkaWriter(builder) {
         public void run() {
-          for (int i = 0; i < 10000; i++) {
-            
+          for (int i = 0; i < 10000; i++) {            
               write("" + i);
-              sended =i;
-
             if (i == 10) {
               new Thread(new Runnable() {
 
@@ -500,8 +510,8 @@ public abstract class AbstractReaderWriterTest {
       } 
       System.out.println("\nfailed messges "+ writer.failed.toString());
       Collections.sort(writer.failed);
-      System.out.println("sended " +sended + " received is  " + received + " failed " + writer.failed.size());
-      assertEquals(sended ,((received -1)+ writer.failed.size()));
+      System.out.println(" received is  " + received + " failed " + writer.failed.size());
+      assertEquals(10000 ,((received )+ writer.failed.size()));
       messages.clear();
       reader.close();
     } finally {
@@ -578,14 +588,19 @@ public abstract class AbstractReaderWriterTest {
       reader = new KafkaReader(zkURL, topic, 0);
       List<String> messages = new LinkedList<String>();
 
-      int total = 0;
+      System.out.print("received messages");
+      int received = 0;
       while (reader.hasNext()) {
+       
         messages = reader.read();
-        total += messages.size();
+        System.out.print(messages);
+        received += messages.size();
         
-      }
-      System.out.println("Total is  " + total);
-      assertTrue(total >= 10000 * tolerance);
+      } 
+      System.out.println("\nfailed messges "+ writer.failed.toString());
+      Collections.sort(writer.failed);
+      System.out.println(" received is  " + received + " failed " + writer.failed.size());
+      assertEquals(10000 ,((received )+ writer.failed.size()));
       messages.clear();
       reader.close();
     } finally {
