@@ -1,5 +1,7 @@
 package com.neverwinterdp.kafkaproducer.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class HostPort {
   private String host;
   private int port;
@@ -14,8 +16,10 @@ public class HostPort {
     this.port = port;
   }
 
-  public HostPort(String zkConnect) {
-    String[] parts = zkConnect.split(":");
+  public HostPort(String hostPort) {
+    checkArgument(hostPort.contains(":"),
+        "The provided connect String {} is not in the form host:port ", hostPort);
+    String[] parts = hostPort.split(":");
     this.host = parts[0];
     this.port = Integer.parseInt(parts[1]);
   }
