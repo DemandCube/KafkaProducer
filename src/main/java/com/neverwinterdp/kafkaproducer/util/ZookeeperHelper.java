@@ -320,9 +320,8 @@ public class ZookeeperHelper implements Closeable {
   }
 
   /**
-   * Re-balance a topic. The topic will be reassigned to remainingBrokers
-   * 
-   * Users should ensure that remainingBrokers.size is equal to the required replication factor.
+   * Re-balance a topic. The topic will be reassigned to the remainingBrokers
+   * Thus limit remainingBrokers.size to replication factor required.
    */
   public void rebalanceTopic(String topic, int partition, List<Object> remainingBrokers) {
     System.out.println("remaining brokers " + remainingBrokers);
