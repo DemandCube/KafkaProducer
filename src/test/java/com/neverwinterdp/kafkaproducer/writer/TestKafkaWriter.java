@@ -72,7 +72,7 @@ public class TestKafkaWriter {
     logger.info("testWriteToPartitionZero. ");
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
-    writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(0).build();
     try {
       for (int i = 0; i < 100; i++) {
         writer.write("my message");
@@ -108,7 +108,7 @@ public class TestKafkaWriter {
     int count = 20;
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
-    writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(0).build();
     String randomMessage = UUID.randomUUID().toString();
     List<String> messages = new LinkedList<>();
     LinkedList<String> buffer = new LinkedList<>();
@@ -133,9 +133,9 @@ public class TestKafkaWriter {
     int count = 20;
     topic = TestUtils.createRandomTopic();
     helper.createTopic(topic, 1, 1);
-    Set<Integer> expected = TestUtils.createRange(0, count);
+    Set<Integer> expected = TestUtils.createRange(1, count+1);
     helper.addPartitions(topic, 2);
-    writer = new KafkaWriter.Builder(zkURL, topic).messageGenerator(new IntegerGenerator()).build();
+    writer = new KafkaWriter.Builder(zkURL, topic).partition(0).messageGenerator(new IntegerGenerator()).build();
     for (int i = 0; i < count; i++) {
       writer.run();
     }

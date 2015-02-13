@@ -31,7 +31,6 @@ import org.junit.Test;
 
 import com.neverwinterdp.kafkaproducer.retry.DefaultRetryStrategy;
 import com.neverwinterdp.kafkaproducer.servers.EmbeddedCluster;
-import com.neverwinterdp.kafkaproducer.util.TestLabel;
 import com.neverwinterdp.kafkaproducer.util.TestUtils;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 import com.neverwinterdp.kafkaproducer.writer.TestKafkaWriter;
@@ -176,7 +175,7 @@ public class TestKafkaReader {
   }
 
   @Test
-  @TestLabel("KW-PT1_1")
+
   public void testHasNoNext() throws Exception {
     System.out.println("this is waht matter most");
     assertFalse(reader.hasNext());

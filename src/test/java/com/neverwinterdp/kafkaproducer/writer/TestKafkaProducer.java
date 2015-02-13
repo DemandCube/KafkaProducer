@@ -107,7 +107,7 @@ public class TestKafkaProducer {
 
     RunnableRetryer retryer;
     for (int i = 0; i < writers; i++) {
-      writer = new KafkaWriter.Builder(zkURL, topic).build();
+      writer = new KafkaWriter.Builder(zkURL, topic).partition(0).build();
       retryer =
           new RunnableRetryer(
               new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);

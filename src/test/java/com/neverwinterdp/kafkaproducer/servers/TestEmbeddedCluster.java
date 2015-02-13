@@ -217,5 +217,29 @@ public class TestEmbeddedCluster {
     } finally {
       cluster.shutdown();
     }
+    
+  }
+
+  /**
+   * Stops the kafka host that is leader.
+   * 
+   * @return the broker that was killed.
+   */
+  private HostPort killLeader(EmbeddedCluster cluster, HostPort leader) throws Exception {
+    HostPort killedLeader = null;
+    KafkaServer kafkaServer = null;
+    for (KafkaServer server : cluster.getKafkaServers()) {
+      if (leader.getHost().equals(server.config().hostName())
+          && leader.getPort() == server.config().port()) {
+        killedLeader = new HostPort(server.config().hostName(), server.config().port());
+        server.shutdown();
+        server.awaitShutdown();
+        kafkaServer = server;
+        System.out.println("Shutting down current leader --> " + server.config().hostName() + ":"
+            + server.config().port() + " id " + server.config().brokerId());
+      }
+    }
+    cluster.getKafkaServers().remove(kafkaServer);
+    return killedLeader;
   }
 }
