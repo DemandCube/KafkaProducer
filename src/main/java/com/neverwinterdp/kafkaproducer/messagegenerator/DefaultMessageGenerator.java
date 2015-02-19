@@ -20,7 +20,7 @@ import com.neverwinterdp.kafkaproducer.partitioner.SimplePartitioner;
  * */
 public class DefaultMessageGenerator implements MessageGenerator<String> {
 
-  private AtomicLong sequenceID;
+  private static AtomicLong sequenceID;
   String message;
   Date now;
   private String topic;

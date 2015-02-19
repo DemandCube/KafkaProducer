@@ -21,7 +21,8 @@ public class Utils {
   /**
    * Convert a byte array containing a JSON string to a map of key/value pairs.
    * 
-   * @param data byte array containing the key/value pair string
+   * @param data
+   *          byte array containing the key/value pair string
    * @return a new map containing the key/value pairs
    */
   public static Map<String, String> toMap(byte[] data) {
@@ -70,8 +71,8 @@ public class Utils {
     System.out.println("Running Threads");
     int count = 0;
     Map<Thread, StackTraceElement[]> threads = Thread.getAllStackTraces();
-    for (Map.Entry<Thread, StackTraceElement[]> entry : threads.entrySet()) {
-      System.out.println(++count + ".Thread: " + entry.getKey().getName());
+    for (Thread thread : threads.keySet()) {
+      System.out.println(++count + ".Thread: " + thread.getName());
     }
   }
 }

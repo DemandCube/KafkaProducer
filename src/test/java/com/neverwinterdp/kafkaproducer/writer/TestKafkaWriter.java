@@ -18,8 +18,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import kafka.common.FailedToSendMessageException;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -66,6 +64,7 @@ public class TestKafkaWriter {
 		helper.createTopic(topic, 1, 1);
 
 		writer = new KafkaWriter.Builder(zkURL, topic).build();
+		writer.connect();
 	}
 
 	@Test
@@ -87,6 +86,7 @@ public class TestKafkaWriter {
 		helper.addPartitions(topic, 2);
 		try {
 			writer = new KafkaWriter.Builder(zkURL, topic).partition(1).build();
+			writer.connect();
 			for (int i = 0; i < 100; i++) {
 				writer.write("my message");
 			}
@@ -129,6 +129,7 @@ public class TestKafkaWriter {
 		helper.addPartitions(topic, 2);
 		writer = new KafkaWriter.Builder(zkURL, topic).messageGenerator(
 				new IntegerGenerator()).build();
+		writer.connect();
 		for (int i = 0; i < count; i++) {
 			writer.run();
 		}
@@ -153,6 +154,7 @@ public class TestKafkaWriter {
 		try {
 			writer = new KafkaWriter.Builder(zkURL, topic).partition(partition)
 					.build();
+			writer.connect();
 			for (int i = 0; i < 5; i++) {
 				writer.run();
 			}
@@ -203,6 +205,7 @@ public class TestKafkaWriter {
 				.newScheduledThreadPool(writers);
 		for (int i = 0; i < writers; i++) {
 			writer = new KafkaWriter.Builder(zkURL, topic).build();
+			writer.connect();
 			final ScheduledFuture<?> timeHandle = scheduler
 					.scheduleAtFixedRate(writer, 0, delay, TimeUnit.SECONDS);
 
@@ -221,11 +224,12 @@ public class TestKafkaWriter {
 
 	}
 
-	@Test(expected = FailedToSendMessageException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testWriteToNonExistentPartition() throws Exception {
 		// create new topic, create writer to partition 20, expect exception
 		topic = TestUtils.createRandomTopic();
 		writer = new KafkaWriter.Builder(zkURL, topic).partition(20).build();
+		writer.connect();
 		for (int i = 0; i < 100; i++) {
 			writer.write(UUID.randomUUID().toString());
 		}
@@ -239,6 +243,7 @@ public class TestKafkaWriter {
 		logger.info("testWriteToPartitionOne. ");
 		try {
 			writer = new KafkaWriter.Builder(brokerList, topic).build();
+			writer.connect();
 			for (int i = 0; i < 100; i++) {
 				writer.write("my message");
 			}
