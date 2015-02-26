@@ -53,7 +53,7 @@ public class TestKafkaProducer {
 
   /**
    * Have 5 threads write to a topic partition, while writing kill leader. Check
-   * if all messages were writen to kafka despite dead leader.
+   * if all messages were written to kafka despite dead leader.
    */
   @Test
   public void testWriteToFailedLeader() throws Exception {
@@ -93,8 +93,8 @@ public class TestKafkaProducer {
   }
 
   /**
-   * Have 5 threads write to a topic partition, while writing kill leader. Check
-   * if all messages were writen to kafka despite dead leader.
+   * Have 5 threads write to a topic partition, while writing kill leader and kill the newly elected leader as well. Check
+   * if all messages were written to kafka despite dead leaders.
    */
   @Test
   public void testFailTwoLeaders() throws Exception {
@@ -134,8 +134,8 @@ public class TestKafkaProducer {
   }
 
   /**
-   * Have 5 threads write to a topic partition, while writing kill leader. Check
-   * if all messages were writen to kafka despite dead leader.
+   * Have 5 threads write to a topic partition, while writing kill all brokers then restart. Check
+   * if all messages were written to kafka despite dead leader.
    */
   @Test
   public void testKillAllBrokers() throws Exception {

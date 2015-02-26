@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.common.collect.ForwardingList;
 
+//TODO use a LinkedBlockingQueue with an exception thrown when offer returns false
 public class FixedSizeList<E> extends ForwardingList<E> {
 
   private LinkedList<E> delegate = new LinkedList<E>();

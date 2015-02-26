@@ -79,7 +79,7 @@ public class TestKafkaCallback {
 
     ImmutableSet<HostPort> brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic)
         .values());
-    cluster.shutdown();
+
     for (int i = 0; i < writers; i++) {
       writer = new KafkaWriter.Builder(brokers, topic).callback(callback).build();
       writer.connect();
@@ -93,9 +93,6 @@ public class TestKafkaCallback {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
-    Thread.sleep(1500);
-    killLeader();
-
     // wait for all writers to finish writing
     Thread.sleep(runDuration * 5000);
 

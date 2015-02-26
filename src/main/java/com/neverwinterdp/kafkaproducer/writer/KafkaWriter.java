@@ -22,6 +22,7 @@ import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
 public class KafkaWriter implements RetryableRunnable, Closeable {
 
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
+  //TODO get a mechanism to stop writer on error
 
   private KafkaProducer<String, String> producer;
   private String zkURL;
@@ -70,6 +71,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     // 1, the producer gets an acknowledgement after the leader replica has received the data.
     // -1, the producer gets an acknowledgement after all in-sync replicas have received the data.
     props.put("request.required.acks", "1");
+    //for new producer type of bootstrap.servers is list not string
     props.put("bootstrap.servers", brokerString);
     props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
     props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
