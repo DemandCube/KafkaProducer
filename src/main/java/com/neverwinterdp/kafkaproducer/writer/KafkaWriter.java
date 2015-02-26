@@ -4,26 +4,23 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import kafka.common.FailedToSendMessageException;
-import kafka.javaapi.producer.Producer;
+import kafka.producer.DefaultPartitioner;
+import kafka.producer.Partitioner;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-import kafka.producer.DefaultPartitioner;
-import kafka.producer.KeyedMessage;
-import kafka.producer.Partitioner;
-import kafka.producer.ProducerConfig;
-
 import com.google.common.collect.ImmutableSet;
 import com.neverwinterdp.kafkaproducer.messagegenerator.DefaultMessageGenerator;
 import com.neverwinterdp.kafkaproducer.messagegenerator.MessageGenerator;
-import com.neverwinterdp.kafkaproducer.retry.RetryException;
 import com.neverwinterdp.kafkaproducer.retry.RetryableRunnable;
 import com.neverwinterdp.kafkaproducer.util.HostPort;
 import com.neverwinterdp.kafkaproducer.util.ZookeeperHelper;
@@ -32,8 +29,15 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   // private static final Logger logger = Logger.getLogger(KafkaWriter.class);
 
-  private Producer<String, String> producer;
-  private KafkaProducer producer2;
+  enum Status {
+    WAITING, FAILED, SUCCESS
+  }
+
+  enum WriterStatus {
+    ACTIF, PAUSE, STOP
+  }
+
+  private KafkaProducer producer;
   private String zkURL;
   private String topic;
   private int partition;
@@ -44,9 +48,10 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   private Collection<HostPort> brokerList;
   private boolean connected;
   private Collection<HostPort> brokers;
-  private HostPort leader;
-  public List<String> failed = new ArrayList<String>();
   private List<Long> offsets = new ArrayList<Long>();
+  private Map<String, Status> messagesStatus = new HashMap<String, Status>();
+  private WriterStatus writerStatus = WriterStatus.ACTIF;
+
   public KafkaWriter(Builder builder) throws Exception {
     zkURL = builder.zkURL;
     brokerList = builder.brokerList;
@@ -62,18 +67,11 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   }
 
   private void connect() {
-    System.out.println("connect , old brokers " + brokers);
-    try {
 
+    try {
       String brokerString;
       if (zkURL != null) {
         brokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-        System.out.println("connect , new brokers " + brokers);
-        try {
-          leader = helper.getLeaderForTopicAndPartition(topic, partition);
-        } catch (Exception e) {
-
-        }
       } else {
         brokers = brokerList;
       }
@@ -82,24 +80,13 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
       } else {
         brokerString = brokers.toString().replace("[", "").replace("]", "");
         Properties props = new Properties();
-
-        // 0, the producer never waits for an acknowledgement from the broker
-        // 1, the producer gets an acknowledgement after the leader replica
-        // has
-        // received the data.
-        // -1, the producer gets an acknowledgement after all in-sync replicas
-        // have received the data.
         props.put("request.required.acks", "-1");
         props.put("metadata.broker.list", brokerString);
         props.put("bootstrap.servers", brokerString);
         props.put("serializer.class", "kafka.serializer.StringEncoder");
         props.put("partitioner.class", partitionerClass.getName());
-
         props.putAll(properties);
-
-        ProducerConfig config = new ProducerConfig(props);
-        producer = new Producer<String, String>(config);
-        producer2 = new KafkaProducer(props);
+        producer = new KafkaProducer(props);
         connected = true;
       }
 
@@ -111,52 +98,24 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   }
 
-  private void checkBrokersChange() {
-    Collection<HostPort> newBrokers;
-    HostPort newLeader = null;
-    try {
-      if (zkURL != null)
-        newBrokers = ImmutableSet.copyOf(helper.getBrokersForTopic(topic).values());
-      else {
-        newBrokers = brokerList;
-      }
-      try {
-        newLeader = helper.getLeaderForTopicAndPartition(topic, partition);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-
-      if (newBrokers.size() != brokers.size()) {
-        connect();
-
-      } else {
-        if (leader != null && newLeader != null && !newLeader.toString().equals(leader.toString())) {
-          connect();
-
-        }
-      }
-      leader = newLeader;
-
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
   @Override
   public void run() {
 
-    System.out.println(Thread.currentThread().getName() + " writing");
     String message = messageGenerator.next();
     try {
-      write(message);
+      while (writerStatus.equals(WriterStatus.PAUSE))
+        Thread.sleep(1000);
+
+      if (writerStatus.equals(WriterStatus.ACTIF))
+        write(message);
+
+      if (writerStatus.equals(WriterStatus.STOP))
+        return;
+
     } catch (Exception e) {
       System.out.println("Exception " + e);
-      throw e;
     }
   }
-
-
 
   public void write(final String message) {
 
@@ -167,32 +126,31 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     } else {
       key = message;
     }
-    // KeyedMessage<String, String> data = new KeyedMessage<String,
-    // String>(topic, key, message);
-    // producer.send(data);
+
     ProducerRecord record = new ProducerRecord(topic, partition, key.getBytes(), message.getBytes());
-    producer2.send(record, new Callback() {
+    producer.send(record, new Callback() {
 
       @Override
       public void onCompletion(RecordMetadata metadata, Exception exception) {
-        //
+
         if (exception != null) {
-          failed.add(message);
-          // write(message);
+          messagesStatus.put(message, Status.FAILED);
 
         } else {
           if (metadata == null) {
-            failed.add(message);
+            messagesStatus.put(message, Status.FAILED);
           } else {
             if (offsets.contains(metadata.offset())) {
-              failed.add(message);
+              messagesStatus.put(message, Status.FAILED);
             } else {
               offsets.add(metadata.offset());
+              messagesStatus.put(message, Status.SUCCESS);
             }
           }
         }
       }
     });
+    messagesStatus.put(message, Status.WAITING);
 
   }
 
@@ -274,10 +232,45 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   @Override
   public void beforeStart() {
 
-    System.out.println("Check connection");
     if (!connected) {
       throw new FailedToSendMessageException("Kafka server is not running", new Throwable());
     }
+  }
 
+  @Override
+  public void processFailed() {
+    for (String message : messagesStatus.keySet()) {
+      if (messagesStatus.get(message).equals(Status.FAILED)) {
+        write(message);
+      }
+    }
+
+  }
+
+  @Override
+  public int getFailureCount() {
+    int count = 0;
+    for (Status m : messagesStatus.values()) {
+      if (m.equals(Status.FAILED)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  @Override
+  public void pause() {
+    writerStatus = WriterStatus.PAUSE;
+  }
+
+  @Override
+  public void resume() {
+    writerStatus = WriterStatus.ACTIF;
+
+  }
+
+  @Override
+  public void stop() {
+    writerStatus = WriterStatus.STOP;
   }
 }

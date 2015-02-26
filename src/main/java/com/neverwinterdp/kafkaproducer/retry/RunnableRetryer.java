@@ -13,10 +13,37 @@ public class RunnableRetryer implements Runnable {
   private RetryableRunnable runnable;
   private boolean isSuccess;
 
-  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable runnable) {
+  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable rble) {
     super();
     this.retryStrategy = retryStrategy;
-    this.runnable = runnable;
+    this.runnable = rble;
+    new Thread() {
+      public void run() {
+        while (true) {
+          int failureCount = runnable.getFailureCount();
+          System.err.println("failureCount "+ failureCount);
+          if (failureCount > 0) {
+            if (failureCount < 1000) {
+              runnable.pause();
+              try {
+                Thread.sleep(5000);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+              runnable.processFailed();
+              runnable.resume();
+            } else {
+              runnable.stop();
+            }
+          }
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }.start();
     isSuccess = false;
   }
 
@@ -25,13 +52,12 @@ public class RunnableRetryer implements Runnable {
     retryStrategy.reset();
     do {
       try {
-        
-        runnable.beforeStart();       
+        runnable.beforeStart();
         runnable.run();
         isSuccess = true;
         retryStrategy.shouldRetry(false);
         counter.incrementAndGet();
-        
+
       } catch (Exception ex) {
         logger.debug("We got an exception: " + ex.toString());
         retryStrategy.errorOccured(ex);
@@ -43,9 +69,8 @@ public class RunnableRetryer implements Runnable {
             retryStrategy.shouldRetry(false);
           }
         } else {
-          throw new RetryException("Runnable did not complete succesfully after "
-              + retryStrategy.getRetries() + ". Last Exception was "
-              + ex.getCause());
+          throw new RetryException("Runnable did not complete succesfully after " + retryStrategy.getRetries()
+              + ". Last Exception was " + ex.getCause());
         }
       }
     } while (retryStrategy.shouldRetry());
