@@ -10,30 +10,32 @@ public class RunnableRetryer implements Runnable {
   private static final AtomicInteger counter = new AtomicInteger(0);
 
   private RetryStrategy retryStrategy;
-  private RetryableRunnable runnable;
+  private RetryableRunnable writer;
   private boolean isSuccess;
+  private Thread watcher;
 
-  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable rble) {
+  public RunnableRetryer(RetryStrategy retryStrategy, RetryableRunnable runnable) {
     super();
     this.retryStrategy = retryStrategy;
-    this.runnable = rble;
-    new Thread() {
+    this.writer = runnable;
+      watcher = new Thread() {
       public void run() {
         while (true) {
-          int failureCount = runnable.getFailureCount();
-          System.err.println("failureCount "+ failureCount);
+          int failureCount = writer.getFailureCount();
+          
           if (failureCount > 0) {
             if (failureCount < 1000) {
-              runnable.pause();
+              System.err.println("failureCount "+ failureCount);
+              writer.pause();
               try {
                 Thread.sleep(5000);
               } catch (InterruptedException e) {
                 e.printStackTrace();
               }
-              runnable.processFailed();
-              runnable.resume();
+              writer.processFailed();
+              writer.resume();
             } else {
-              runnable.stop();
+              writer.stop();
             }
           }
           try {
@@ -43,7 +45,8 @@ public class RunnableRetryer implements Runnable {
           }
         }
       }
-    }.start();
+    };
+    watcher.start();
     isSuccess = false;
   }
 
@@ -52,8 +55,8 @@ public class RunnableRetryer implements Runnable {
     retryStrategy.reset();
     do {
       try {
-        runnable.beforeStart();
-        runnable.run();
+        writer.beforeStart();
+        writer.run();
         isSuccess = true;
         retryStrategy.shouldRetry(false);
         counter.incrementAndGet();
@@ -63,7 +66,7 @@ public class RunnableRetryer implements Runnable {
         retryStrategy.errorOccured(ex);
         if (retryStrategy.shouldRetry()) {
           try {
-            runnable.beforeRetry();
+            writer.beforeRetry();
             retryStrategy.await();
           } catch (InterruptedException e) {
             retryStrategy.shouldRetry(false);
@@ -75,6 +78,10 @@ public class RunnableRetryer implements Runnable {
       }
     } while (retryStrategy.shouldRetry());
   }
+  
+  public void stop(){
+    watcher.stop();
+  }
 
   public RetryStrategy getRetryStrategy() {
     return retryStrategy;
@@ -85,11 +92,11 @@ public class RunnableRetryer implements Runnable {
   }
 
   public RetryableRunnable getRunnable() {
-    return runnable;
+    return writer;
   }
 
   public void setRunnable(RetryableRunnable runnable) {
-    this.runnable = runnable;
+    this.writer = runnable;
   }
 
   public boolean isSuccess() {

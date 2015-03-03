@@ -66,7 +66,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     connect();
   }
 
-  private void connect() {
+  public void connect() {
 
     try {
       String brokerString;
@@ -144,7 +144,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
               messagesStatus.put(message, Status.FAILED);
             } else {
               offsets.add(metadata.offset());
-              messagesStatus.put(message, Status.SUCCESS);
+              messagesStatus.remove(message);
             }
           }
         }

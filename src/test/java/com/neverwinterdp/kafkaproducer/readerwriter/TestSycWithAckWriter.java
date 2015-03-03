@@ -17,4 +17,10 @@ public class TestSycWithAckWriter extends AbstractReaderWriterTest {
     writeToNonExistentTopic();
   }
 
+  @Override
+  protected int getRow() {
+    // TODO Auto-generated method stub
+    return 4;
+  }
+
 }

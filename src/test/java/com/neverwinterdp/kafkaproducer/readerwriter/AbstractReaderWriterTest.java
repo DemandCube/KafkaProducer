@@ -2,7 +2,11 @@ package com.neverwinterdp.kafkaproducer.readerwriter;
 
 import static com.neverwinterdp.kafkaproducer.util.Utils.printRunningThreads;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -12,9 +16,11 @@ import java.util.Properties;
 import kafka.common.FailedToSendMessageException;
 import kafka.server.KafkaServer;
 
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.log4j.Logger;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,16 +44,39 @@ public abstract class AbstractReaderWriterTest {
   protected static EmbeddedCluster cluster;
   protected static ZookeeperHelper helper;
   protected static String zkURL;
+ 
+  private static FileInputStream WriterInputDocument;
+  private static HSSFWorkbook writerWorkbook;
+  private static FileInputStream retryerInputDocument;
+  private static HSSFWorkbook retryerWorkbook;
+
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     printRunningThreads();
+    WriterInputDocument = new FileInputStream(new File("writer_stats.xls"));
+    writerWorkbook = new HSSFWorkbook(WriterInputDocument);
+    retryerInputDocument = new FileInputStream(new File("retryer_stats.xls"));
+    retryerWorkbook = new HSSFWorkbook(retryerInputDocument);
+    
+
+  }
+
+  @AfterClass
+  public static void setAfterClass() throws Exception {
+    WriterInputDocument.close();
+    FileOutputStream outputFile = new FileOutputStream(new File("writer_stats.xls"));
+    writerWorkbook.write(outputFile);
+    outputFile.close();
+    retryerInputDocument.close();
+    outputFile = new FileOutputStream(new File("retryer_stats.xls"));
+    retryerWorkbook.write(outputFile);
+    outputFile.close();
   }
 
   protected void initCluster(int numOfZkInstances, int numOfKafkaInstances) throws Exception {
     cluster = new EmbeddedCluster(numOfZkInstances, numOfKafkaInstances);
     cluster.start();
-
     zkURL = cluster.getZkURL();
     helper = new ZookeeperHelper(zkURL);
     Thread.sleep(3000);
@@ -68,7 +97,7 @@ public abstract class AbstractReaderWriterTest {
 
   protected abstract Properties initProperties() throws Exception;
 
-  @Test(expected = IndexOutOfBoundsException.class)
+  ////@Test(expected = IndexOutOfBoundsException.class)
   public void testNoServerRunning() throws Exception {
     try {
       initCluster(0, 0);
@@ -79,7 +108,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  @Test(expected = ZkNoNodeException.class)
+  //@Test(expected = ZkNoNodeException.class)
   public void testOnlyZookeeperRunning() throws Exception {
     try {
       initCluster(1, 0);
@@ -89,7 +118,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test(expected = ZkTimeoutException.class)
+  //@Test(expected = ZkTimeoutException.class)
   public void testOnlyBrokerRunning() throws Exception {
     try {
       initCluster(0, 1);
@@ -99,7 +128,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test(expected = NullPointerException.class)
+  //@Test(expected = NullPointerException.class)
   public void testWriteToNonExistentTopic() throws Exception {
     writeToNonExistentTopic();
   }
@@ -115,7 +144,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testWriteToWrongServer() throws Exception {
 
     try {
@@ -133,7 +162,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testCheckWritenDataExistOnPartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -165,7 +194,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testWriteToSingleTopicSinglePartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -191,7 +220,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testWriteTenThousandMessages() throws Exception {
     try {
       initCluster(1, 1);
@@ -219,7 +248,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testWriteTenThousandMessagesToFiveTopics() throws Exception {
     try {
       initCluster(1, 1);
@@ -256,7 +285,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testWriteTenThousandMessagesToFiveTopicsTowPartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -300,7 +329,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  @Test
+  //@Test
   public void testRetryUntilKafkaStart() throws Exception {
     List<String> messages = new ArrayList<>();
     try {
@@ -343,7 +372,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  @Test
+  //@Test
   public void testRetryUntilTopicCreation() throws Exception {
     List<String> messages = new ArrayList<>();
     try {
@@ -386,7 +415,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  @Test
+  //@Test
   public void testRetryWhenLeaderKilled() throws Exception {
     try {
       initCluster(1, 3);
@@ -422,7 +451,7 @@ public abstract class AbstractReaderWriterTest {
       }
 
       System.out.println(" received is  " + received + " failed " + writer.getFailureCount());
-      assertEquals(10000, received );
+      assertEquals(10000, received);
       reader.close();
       messages.clear();
     } finally {
@@ -431,7 +460,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  @Test
+  //@Test
   public void testKillLeaderAndRebalance() throws Exception {
 
     int kafkaBrokers = 4;
@@ -492,7 +521,7 @@ public abstract class AbstractReaderWriterTest {
 
       }
       System.out.println(" received is  " + received + " failed " + writer.getFailureCount());
-      assertEquals(10000, received);// + writer.failed.size()
+      assertEquals(10000, received);
       messages.clear();
       reader.close();
     } finally {
@@ -502,7 +531,16 @@ public abstract class AbstractReaderWriterTest {
   }
 
   @Test
-  public void testKillLeaderRebalnceAndRestart() throws Exception {
+  public void testKillLeaderRebalnceAndRestartWithRetryer() throws Exception {
+    testKillLeaderRebalnceAndRestart(true);
+  }
+
+  @Test
+  public void testKillLeaderRebalnceAndRestartWithoutRetryer() throws Exception {
+    testKillLeaderRebalnceAndRestart(false);
+  }
+
+  public void testKillLeaderRebalnceAndRestart(boolean useRetryer) throws Exception {
 
     int kafkaBrokers = 4;
     final int replicationFactor = 3;
@@ -514,56 +552,58 @@ public abstract class AbstractReaderWriterTest {
       final HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
       Properties props = initProperties();
       KafkaWriter.Builder builder = new KafkaWriter.Builder(zkURL, topic).partition(0).properties(props);
-
+      RunnableRetryer retryer = null;
       KafkaWriter writer = new KafkaWriter(builder);
-      RunnableRetryer retryer = new RunnableRetryer(
-          new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
-      
- 
-          for (int i = 0; i < 10000; i++) {
-            retryer.run();
-            if (i == 9999) {
-              System.out.println("End of send");
-            }
-            if (i == 10) {
-              new Thread(new Runnable() {
+      if (useRetryer)
+        retryer = new RunnableRetryer(new DefaultRetryStrategy(5, 500, FailedToSendMessageException.class), writer);
 
-                @Override
-                public void run() {
+      for (int i = 0; i < 10000; i++) {
+        if (useRetryer)
+          retryer.run();
+        else
+          writer.write(i + "");
 
-                  try {
-                    KafkaServer deadLeader = killLeader(leader);
-                    List<Object> remainingBrokers = new ArrayList<>();
-                    for (KafkaServer server : cluster.getKafkaServers()) {
-                      remainingBrokers.add(server.config().brokerId());
-                    }
-                    System.out.println("Leader killed  ");
-                    // before rebalance the shouldn't be equal
-                    int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
-                    assertEquals(replicationFactor - 1, brokersForTopic);
-                    helper.rebalanceTopic(topic, 0, remainingBrokers);
-                    System.out.println("rebalance done ");
-                    brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
-                    deadLeader.startup();
-                    cluster.getKafkaServers().add(deadLeader);
-                    System.out.println("dead leader started");
-                    remainingBrokers.clear();
-                    for (KafkaServer server : cluster.getKafkaServers()) {
-                      remainingBrokers.add(server.config().brokerId());
-                    }
-                    helper.rebalanceTopic(topic, 0, remainingBrokers);
-                    System.out.println("Rebalance again done ");
-                  } catch (Exception e) {
-                    e.printStackTrace();
-                  }
+        if (i == 10) {
+          new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+
+              try {
+                KafkaServer deadLeader = killLeader(leader);
+                List<Object> remainingBrokers = new ArrayList<>();
+                for (KafkaServer server : cluster.getKafkaServers()) {
+                  remainingBrokers.add(server.config().brokerId());
                 }
-              }).start();
+                System.out.println("Leader killed  ");
+                // before rebalance the shouldn't be equal
+                int brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                assertEquals(replicationFactor - 1, brokersForTopic);
+                helper.rebalanceTopic(topic, 0, remainingBrokers);
+                System.out.println("rebalance done ");
+                brokersForTopic = helper.getBrokersForTopicAndPartition(topic, 0).size();
+                deadLeader.startup();
+                cluster.getKafkaServers().add(deadLeader);
+                System.out.println("dead leader started");
+                remainingBrokers.clear();
+                for (KafkaServer server : cluster.getKafkaServers()) {
+                  remainingBrokers.add(server.config().brokerId());
+                }
+                helper.rebalanceTopic(topic, 0, remainingBrokers);
+                System.out.println("Rebalance again done ");
+              } catch (Exception e) {
+                e.printStackTrace();
+              }
             }
+          }).start();
+        }
 
-          }
-    
+      }
       
       Thread.sleep(10000);
+      if(retryer != null){
+        retryer.stop();
+      }
       KafkaReader reader;
       reader = new KafkaReader(zkURL, topic, 0);
       List<String> messages = new LinkedList<String>();
@@ -571,15 +611,19 @@ public abstract class AbstractReaderWriterTest {
       System.out.print("received messages");
       int received = 0;
       while (reader.hasNext()) {
-
         messages = reader.read();
-        System.out.print(messages);
         received += messages.size();
-
       }
 
       System.out.println(" received is  " + received + " failed " + writer.getFailureCount());
-      assertEquals(10000, received);
+      if (useRetryer){
+        assertEquals(10000, received);
+        updateSpreadSheet(retryerWorkbook, 0, received , writer.getFailureCount());
+      }else {
+        assertTrue(received < 10000);
+        updateSpreadSheet(writerWorkbook, 0,  received , writer.getFailureCount());
+      }
+      
       messages.clear();
       reader.close();
     } finally {
@@ -587,7 +631,19 @@ public abstract class AbstractReaderWriterTest {
       cluster.shutdown();
     }
   }
-
+protected void updateSpreadSheet(HSSFWorkbook workbook, int sheet, int received, int failures ){
+  HSSFSheet my_worksheet = workbook.getSheetAt(sheet);
+  Cell cell = null;
+  int row = getRow();
+  cell = my_worksheet.getRow(row).getCell(1);
+  cell.setCellValue(received);
+  cell = my_worksheet.getRow(row).getCell(2);
+  cell.setCellValue(failures);
+  cell = my_worksheet.getRow(row).getCell(3);
+  cell.setCellValue(10000 - (received + failures));
+}
+  protected abstract int getRow();
+  
   protected void killLeader(String topic) throws Exception {
     // while writer threads are writing, kill the leader
     HostPort leader = helper.getLeaderForTopicAndPartition(topic, 0);
