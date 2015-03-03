@@ -103,9 +103,9 @@ public class ZookeeperHelper implements Closeable {
   }
 
   /*
-   * /brokers/[0...N] --> { "host" : "host:port",
-   * "topics" : {"topic1": ["partition1" ... "partitionN"], ...,
-   * "topicN": ["partition1" ... "partitionN"] } }
+   * /brokers/[0...N] --> { "host" : "host:port", "topics" : {"topic1":
+   * ["partition1" ... "partitionN"], ..., "topicN": ["partition1" ...
+   * "partitionN"] } }
    */
   public Collection<HostPort> getBrokersForTopicAndPartition(String topic, int partition)
       throws Exception {
@@ -276,7 +276,6 @@ public class ZookeeperHelper implements Closeable {
     }
   }
 
-
   // Listener for node changes
   public void setTopicNodeListener(TopicNodeListener topicNodeListener) throws Exception {
     logger.info("setTopicNodeListener. ");
@@ -286,7 +285,6 @@ public class ZookeeperHelper implements Closeable {
     pathChildrenCache.start(StartMode.BUILD_INITIAL_CACHE);
     pathChildrenCache.getListenable().addListener(topicNodeListener);
   }
-
 
   @Override
   public void close() throws IOException {
@@ -322,7 +320,8 @@ public class ZookeeperHelper implements Closeable {
   /**
    * Re-balance a topic. The topic will be reassigned to remainingBrokers
    * 
-   * Users should ensure that remainingBrokers.size is equal to the required replication factor.
+   * Users should ensure that remainingBrokers.size is equal to the required
+   * replication factor.
    */
   public void rebalanceTopic(String topic, int partition, List<Object> remainingBrokers) {
     System.out.println("remaining brokers " + remainingBrokers);
@@ -336,20 +335,23 @@ public class ZookeeperHelper implements Closeable {
       scala.collection.mutable.Map<TopicAndPartition, Seq<Object>> x =
           scala.collection.JavaConversions.asScalaMap(map);
       ReassignPartitionsCommand command = new ReassignPartitionsCommand(client, x);
-      boolean success = command.validatePartition(client, topic, partition);
-      System.out.println("is valid " + success);
+
       System.out.println("reasign " + command.reassignPartitions());
-      System.out.println("check again " + command.validatePartition(client, topic, partition));
+      Thread.sleep(5000);
 
       scala.collection.mutable.Set<TopicAndPartition> topicsAndPartitions =
           scala.collection.JavaConversions.asScalaSet(Collections.singleton(topicAndPartition));
       PreferredReplicaLeaderElectionCommand commands =
           new PreferredReplicaLeaderElectionCommand(client, topicsAndPartitions);
       commands.moveLeaderToPreferredReplica();
-      Thread.sleep(5000);
+
       client.close();
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  public ZkClient getZkClient() {
+    return new ZkClient(zkConnectString, 10000, 10000, ZKStringSerializer$.MODULE$);
   }
 }

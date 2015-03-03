@@ -16,8 +16,7 @@ public class DefaultRetryStrategy implements RetryStrategy {
 	private Exception exception;
 
 	// TODO retry on more than 1 type of exception
-	public DefaultRetryStrategy(int maxRetries, int waitDuration,
-			Class<? extends Exception> retryableException) {
+	public DefaultRetryStrategy(int maxRetries, int waitDuration,Class<? extends Exception> retryableException) {
 		super();
 		this.maxRetries = maxRetries;
 		this.waitDuration = waitDuration;

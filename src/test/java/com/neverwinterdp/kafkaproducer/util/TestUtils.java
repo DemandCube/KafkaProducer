@@ -62,11 +62,11 @@ public class TestUtils {
       e.printStackTrace();
     } finally {
       try {
-        System.out.println("helper.getLeader " + helper.getLeaderForTopicAndPartition(topic, 0));
         helper.close();
       } catch (Exception e) {
       }
     }
+    System.out.println("read "+ messages.size() +" messages");
     return messages;
   }
 

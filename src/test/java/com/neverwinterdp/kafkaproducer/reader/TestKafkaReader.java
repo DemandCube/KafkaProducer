@@ -178,7 +178,7 @@ public class TestKafkaReader {
   @Test
   @TestLabel("KW-PT1_1")
   public void testHasNoNext() throws Exception {
-    System.out.println("this is waht matter most");
+    System.out.println("this is what matter most");
     assertFalse(reader.hasNext());
   }
 

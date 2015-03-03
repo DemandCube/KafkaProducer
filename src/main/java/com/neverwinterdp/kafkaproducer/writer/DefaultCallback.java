@@ -11,15 +11,15 @@ import org.apache.kafka.clients.producer.RecordMetadata;
  * @param <T>
  * */
 
-// 
+//
 public class DefaultCallback implements Callback {
 
   private static AtomicInteger integer = new AtomicInteger(0);
 
   @Override
   public void onCompletion(RecordMetadata metadata, Exception exception) {
-    
-    System.out.println("callback " + integer.incrementAndGet() + " offset:" + metadata.offset());
+
+    //System.out.println("callback " + integer.incrementAndGet() + " offset:" + metadata.offset());
 
   }
 

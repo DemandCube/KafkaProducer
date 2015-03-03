@@ -69,8 +69,8 @@ public class EmbeddedCluster {
 
     KafkaConfig config = new KafkaConfig(props);
     Time mock = new MockTime();
-    System.out.println("auto.leader.rebalance.enable: " + config.autoLeaderRebalanceEnable());
-    System.out.println("controlled.shutdown.enabled " + config.controlledShutdownEnable());
+  //  System.out.println("auto.leader.rebalance.enable: " + config.autoLeaderRebalanceEnable());
+   // System.out.println("controlled.shutdown.enabled " + config.controlledShutdownEnable());
     KafkaServer kafkaServer = TestUtils.createServer(config, mock);
     kafkaHosts.add(new HostPort("127.0.0.1", port));
     kafkaServers.add(kafkaServer);

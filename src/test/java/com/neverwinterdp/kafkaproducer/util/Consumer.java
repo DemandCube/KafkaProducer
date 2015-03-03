@@ -54,9 +54,7 @@ public class Consumer implements AutoCloseable {
     helper = new ZookeeperHelper(zkURL);
     HostPort leader = helper.getLeaderForTopicAndPartition(topic, partition);
 
-    consumer =
-        new SimpleConsumer(leader.getHost(), leader.getPort(), TIMEOUT, BUFFER_SIZE,
-            "test-consumer");
+    consumer =new SimpleConsumer(leader.getHost(), leader.getPort(), TIMEOUT, BUFFER_SIZE, "test-consumer");
 
   }
 
@@ -64,8 +62,7 @@ public class Consumer implements AutoCloseable {
     long currentOffset = getOffset(kafka.api.OffsetRequest.EarliestTime());
     do {
       FetchRequest req =
-          new FetchRequestBuilder().clientId("test Consumer")
-              .addFetch(topic, partition, currentOffset, 100000).build();
+          new FetchRequestBuilder().clientId("test Consumer").addFetch(topic, partition, currentOffset, 100000).build();
 
       FetchResponse resp = consumer.fetch(req);
       if (resp.hasError()) {
@@ -76,8 +73,7 @@ public class Consumer implements AutoCloseable {
       for (MessageAndOffset messageAndOffset : resp.messageSet(topic, partition)) {
         long messageOffset = messageAndOffset.offset();
         if (messageOffset < currentOffset) {
-          System.out
-              .println("Found an old offset: " + messageOffset + " Expecting: " + currentOffset);
+          System.out.println("Found an old offset: " + messageOffset + " Expecting: " + currentOffset);
           continue;
         }
 
@@ -97,7 +93,6 @@ public class Consumer implements AutoCloseable {
       }
       currentOffset = nextOffset;
     } while (hasNextOffset);
-    System.out.println("Read -->"+messages.size());
     return messages;
   }
 
@@ -111,8 +106,7 @@ public class Consumer implements AutoCloseable {
     offsetInfo
         .put(new TopicAndPartition(topic, partition), new PartitionOffsetRequestInfo(time, 1));
     System.out.println("cunsumer is null " + consumer == null);
-    OffsetResponse response =
-        consumer.getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
+    OffsetResponse response =consumer.getOffsetsBefore(new OffsetRequest(offsetInfo, kafka.api.OffsetRequest
             .CurrentVersion(), "test-consumer"));
     long[] endOffset = response.offsets(topic, partition);
     return endOffset[0];
