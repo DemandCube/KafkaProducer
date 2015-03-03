@@ -45,7 +45,6 @@ public class TestKafkaProducer extends AbstractProducerTests {
       }, runDuration, TimeUnit.SECONDS);
     }
     killLeader();
-
     // wait for all writers to finish writing
     Thread.sleep(runDuration * 3000);
 
@@ -107,7 +106,7 @@ public class TestKafkaProducer extends AbstractProducerTests {
 
     List<String> messages = new ArrayList<>();
     // 6 writers, writing every 2 seconds for 300 seconds
-    int delay = 2;
+    int delay = 5;
     int runDuration = 20;
 
     RunnableRetryer retryer;
@@ -123,7 +122,10 @@ public class TestKafkaProducer extends AbstractProducerTests {
         }
       }, runDuration, TimeUnit.SECONDS);
     }
-
+    messages = TestUtils.readMessages(topic, zkURL);
+    int expected = RunnableRetryer.getCounter().get();
+    //RunnableRetryer.resetCounter();
+    assertEquals(expected, messages.size());
     for (int i = 0; i < kafkaBrokers; i++) {
       killLeader();
     }
@@ -133,12 +135,11 @@ public class TestKafkaProducer extends AbstractProducerTests {
     helper.rebalanceTopic(topic, 0, new ArrayList<Object>(servers.getKafkaServers()));
 
     System.out.println("sleeping for " + runDuration * 1000 + " ms to wait all writers to write.");
-    Thread.sleep(runDuration * 4000);
+    Thread.sleep(runDuration * 1000);
     System.out.println("we have writen everything.");
-    messages = TestUtils.readMessages(topic, zkURL);
-
     // int expected = writers * runDuration / delay;
-    int expected = RunnableRetryer.getCounter().get();
+    messages = TestUtils.readMessages(topic, zkURL);
+    expected = RunnableRetryer.getCounter().get();
     assertEquals(expected, messages.size());
   }
 
@@ -177,7 +178,6 @@ public class TestKafkaProducer extends AbstractProducerTests {
     }
 
     helper.rebalanceTopic(topic, 0, remainingBrokers);
-    killLeader();
 
     System.out.println("brokers after rebalance " + helper.getBrokersForTopic(topic));
     Thread.sleep(runDuration * 1000);

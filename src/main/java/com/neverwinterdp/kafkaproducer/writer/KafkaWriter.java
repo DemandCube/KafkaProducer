@@ -100,7 +100,6 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
 
   @Override
   public void run() {
-
     String message = messageGenerator.next();
     try {
       while (writerStatus.equals(WriterStatus.PAUSE))
@@ -118,7 +117,7 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   }
 
   public void write(final String message) {
-
+    System.out.println("Sending ...");
     String key;
     if (partition != -1) {
       // we already know what partition to write to
@@ -126,16 +125,14 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     } else {
       key = message;
     }
-
     ProducerRecord record = new ProducerRecord(topic, partition, key.getBytes(), message.getBytes());
     producer.send(record, new Callback() {
-
+    
       @Override
       public void onCompletion(RecordMetadata metadata, Exception exception) {
 
         if (exception != null) {
           messagesStatus.put(message, Status.FAILED);
-
         } else {
           if (metadata == null) {
             messagesStatus.put(message, Status.FAILED);

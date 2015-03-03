@@ -22,10 +22,10 @@ public class RunnableRetryer implements Runnable {
       public void run() {
         while (true) {
           int failureCount = writer.getFailureCount();
-          
           if (failureCount > 0) {
+            System.err.println("failureCount "+ failureCount);
             if (failureCount < 1000) {
-              System.err.println("failureCount "+ failureCount);
+              
               writer.pause();
               try {
                 Thread.sleep(5000);
