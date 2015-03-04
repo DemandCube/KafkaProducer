@@ -107,7 +107,7 @@ public class TestKafkaProducer extends AbstractProducerTests {
     List<String> messages = new ArrayList<>();
     // 6 writers, writing every 2 seconds for 300 seconds
     int delay = 5;
-    int runDuration = 20;
+    int runDuration = 60;
 
     RunnableRetryer retryer;
     for (int i = 0; i < writers; i++) {
@@ -126,12 +126,14 @@ public class TestKafkaProducer extends AbstractProducerTests {
     int expected = RunnableRetryer.getCounter().get();
     //RunnableRetryer.resetCounter();
     assertEquals(expected, messages.size());
+    System.err.println("-------> expected " +expected+" messages.size() " + messages.size());
     for (int i = 0; i < kafkaBrokers; i++) {
       killLeader();
     }
 
     Thread.sleep(3000);
     restartAllBrokers();
+    Thread.sleep(3000);
     helper.rebalanceTopic(topic, 0, new ArrayList<Object>(servers.getKafkaServers()));
 
     System.out.println("sleeping for " + runDuration * 1000 + " ms to wait all writers to write.");
@@ -140,6 +142,7 @@ public class TestKafkaProducer extends AbstractProducerTests {
     // int expected = writers * runDuration / delay;
     messages = TestUtils.readMessages(topic, zkURL);
     expected = RunnableRetryer.getCounter().get();
+    System.err.println("-------> expected " +expected+" messages.size() " + messages.size());
     assertEquals(expected, messages.size());
   }
 

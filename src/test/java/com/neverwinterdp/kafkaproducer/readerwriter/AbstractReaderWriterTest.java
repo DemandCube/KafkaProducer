@@ -16,6 +16,8 @@ import java.util.Properties;
 import kafka.common.FailedToSendMessageException;
 import kafka.server.KafkaServer;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.exception.ZkTimeoutException;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -97,7 +99,7 @@ public abstract class AbstractReaderWriterTest {
 
   protected abstract Properties initProperties() throws Exception;
 
-  ////@Test(expected = IndexOutOfBoundsException.class)
+  @Test(expected = IndexOutOfBoundsException.class)
   public void testNoServerRunning() throws Exception {
     try {
       initCluster(0, 0);
@@ -108,7 +110,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  //@Test(expected = ZkNoNodeException.class)
+  @Test(expected = ZkNoNodeException.class)
   public void testOnlyZookeeperRunning() throws Exception {
     try {
       initCluster(1, 0);
@@ -118,7 +120,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test(expected = ZkTimeoutException.class)
+  @Test(expected = ZkTimeoutException.class)
   public void testOnlyBrokerRunning() throws Exception {
     try {
       initCluster(0, 1);
@@ -128,7 +130,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test(expected = NullPointerException.class)
+  @Test(expected = NullPointerException.class)
   public void testWriteToNonExistentTopic() throws Exception {
     writeToNonExistentTopic();
   }
@@ -144,7 +146,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWriteToWrongServer() throws Exception {
 
     try {
@@ -162,7 +164,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testCheckWritenDataExistOnPartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -194,7 +196,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWriteToSingleTopicSinglePartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -220,7 +222,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWriteTenThousandMessages() throws Exception {
     try {
       initCluster(1, 1);
@@ -248,7 +250,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWriteTenThousandMessagesToFiveTopics() throws Exception {
     try {
       initCluster(1, 1);
@@ -285,7 +287,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testWriteTenThousandMessagesToFiveTopicsTowPartition() throws Exception {
     try {
       initCluster(1, 1);
@@ -329,7 +331,7 @@ public abstract class AbstractReaderWriterTest {
     }
   }
 
-  //@Test
+  @Test
   public void testRetryUntilKafkaStart() throws Exception {
     List<String> messages = new ArrayList<>();
     try {
@@ -372,7 +374,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  //@Test
+  @Test
   public void testRetryUntilTopicCreation() throws Exception {
     List<String> messages = new ArrayList<>();
     try {
@@ -415,7 +417,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  //@Test
+  @Test
   public void testRetryWhenLeaderKilled() throws Exception {
     try {
       initCluster(1, 3);
@@ -460,7 +462,7 @@ public abstract class AbstractReaderWriterTest {
 
   }
 
-  //@Test
+  @Test
   public void testKillLeaderAndRebalance() throws Exception {
 
     int kafkaBrokers = 4;

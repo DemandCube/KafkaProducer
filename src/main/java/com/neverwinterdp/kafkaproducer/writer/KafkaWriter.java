@@ -85,6 +85,8 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
         props.put("bootstrap.servers", brokerString);
         props.put("serializer.class", "kafka.serializer.StringEncoder");
         props.put("partitioner.class", partitionerClass.getName());
+        props.put("request.required.acks", "-1");
+        props.put("producer.type", "sync");
         props.putAll(properties);
         producer = new KafkaProducer(props);
         connected = true;
@@ -117,7 +119,6 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
   }
 
   public void write(final String message) {
-    System.out.println("Sending ...");
     String key;
     if (partition != -1) {
       // we already know what partition to write to
@@ -130,7 +131,6 @@ public class KafkaWriter implements RetryableRunnable, Closeable {
     
       @Override
       public void onCompletion(RecordMetadata metadata, Exception exception) {
-
         if (exception != null) {
           messagesStatus.put(message, Status.FAILED);
         } else {
